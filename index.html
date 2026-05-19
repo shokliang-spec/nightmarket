@@ -6,9 +6,15 @@
 <title>花園夜市格位管理</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Share+Tech+Mono&display=swap');
-:root{--bg:#0e0f13;--sur:#161820;--sur2:#1e2130;--bdr:#2a2f40;--acc:#f5a623;--acc2:rgba(245,166,35,.15);--acc3:rgba(245,166,35,.3);--grn:#3ecf6e;--grn2:rgba(62,207,110,.12);--grn3:rgba(62,207,110,.3);--tx:#e2e4ed;--tx2:#6b7280;--tx3:#9ca3af}
+:root{
+  --bg:#0e0f13;--sur:#161820;--sur2:#1e2130;--bdr:#2a2f40;
+  --acc:#f5a623;--acc2:rgba(245,166,35,.15);--acc3:rgba(245,166,35,.3);
+  --grn:#3ecf6e;--grn2:rgba(62,207,110,.12);--grn3:rgba(62,207,110,.3);
+  --tx:#e2e4ed;--tx2:#6b7280;--tx3:#9ca3af;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;display:flex;flex-direction:column}
 .hd{background:var(--sur);border-bottom:1px solid var(--bdr);padding:9px 16px;display:flex;align-items:center;gap:14px;flex-shrink:0;flex-wrap:wrap;z-index:50}
 .logo{font-size:17px;font-weight:900;color:var(--acc);white-space:nowrap}
 .logo span{color:var(--tx3);font-weight:300;font-size:13px}
@@ -32,20 +38,56 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .sdot{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:3px}
 .bwrap{display:flex;flex:1;overflow:hidden;min-height:0}
 .mscroll{flex:1;overflow:auto;padding:14px;min-height:0}
-.stall{width:34px;height:26px;border-radius:4px;border:1px solid var(--bdr);background:var(--sur2);display:flex;align-items:center;justify-content:center;font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--tx2);cursor:pointer;transition:all .1s;flex-shrink:0}
-.stall:hover{border-color:var(--acc);color:var(--acc);background:rgba(245,166,35,.08);z-index:2;transform:scale(1.1)}
-.stall.has{background:var(--grn2);border-color:var(--grn3);color:var(--grn)}
-.stall.has:hover{border-color:var(--acc);color:var(--acc);background:rgba(245,166,35,.08)}
-.stall.sel{background:var(--acc)!important;border-color:var(--acc)!important;color:#000!important;font-weight:700;transform:scale(1.1);z-index:3;box-shadow:0 0 0 2px rgba(245,166,35,.35)}
-.stall.hl{background:rgba(245,166,35,.22);border-color:var(--acc);color:var(--acc);animation:hpulse 1s ease-in-out infinite alternate}
-@keyframes hpulse{from{box-shadow:0 0 0 0 rgba(245,166,35,.4)}to{box-shadow:0 0 0 4px rgba(245,166,35,0)}}
-.stall-w{width:44px}
-.rlbl{font-size:8px;font-family:'Share Tech Mono',monospace;color:var(--tx2);background:var(--sur);border:1px solid var(--bdr);border-radius:3px;display:flex;align-items:center;justify-content:center;padding:2px;flex-shrink:0;white-space:nowrap}
-.rlbl-v{writing-mode:vertical-rl;text-orientation:mixed;min-width:16px;padding:3px 2px}
-.rlbl-h{height:26px;min-width:34px;padding:2px 4px}
-.zone-box{border:1px solid var(--bdr);border-radius:4px;background:var(--sur);padding:6px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
-.zone-lbl{font-size:8px;font-family:'Share Tech Mono',monospace;color:var(--tx2)}
-.spanel{width:290px;flex-shrink:0;background:var(--sur);border-left:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;height:100%}
+
+/* Cell: each stall = blank | number | blank (3 cols) */
+.cell{
+  display:flex;flex-direction:row;flex-shrink:0;cursor:pointer;
+  transition:all .1s;
+}
+.cell-blank{
+  width:22px;height:24px;
+  border:1px solid var(--bdr);background:var(--sur2);
+  flex-shrink:0;transition:all .1s;
+}
+.cell-blank:first-child{border-radius:3px 0 0 3px;border-right:none}
+.cell-blank:last-child{border-radius:0 3px 3px 0;border-left:none}
+.cell-num{
+  width:28px;height:24px;
+  border:1px solid var(--bdr);background:var(--sur2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-family:'Share Tech Mono',monospace;
+  color:var(--tx2);flex-shrink:0;transition:all .1s;
+}
+.cell:hover .cell-blank,
+.cell:hover .cell-num{border-color:var(--acc);color:var(--acc);background:rgba(245,166,35,.08)}
+.cell.has .cell-blank,.cell.has .cell-num{background:var(--grn2);border-color:var(--grn3);color:var(--grn)}
+.cell.sel .cell-blank,.cell.sel .cell-num{background:var(--acc)!important;border-color:var(--acc)!important;color:#000!important;font-weight:700}
+.cell.hl .cell-blank,.cell.hl .cell-num{background:rgba(245,166,35,.22);border-color:var(--acc);color:var(--acc);animation:hp 1s ease-in-out infinite alternate}
+@keyframes hp{from{box-shadow:0 0 0 0 rgba(245,166,35,.4)}to{box-shadow:0 0 0 3px rgba(245,166,35,0)}}
+
+/* Horizontal stall for 13排/15排 rows */
+.hcell{
+  display:flex;flex-direction:column;flex-shrink:0;cursor:pointer;transition:all .1s;
+}
+.hcell-blank{width:36px;height:16px;border:1px solid var(--bdr);background:var(--sur2);flex-shrink:0;transition:all .1s;}
+.hcell-blank:first-child{border-radius:3px 3px 0 0;border-bottom:none}
+.hcell-blank:last-child{border-radius:0 0 3px 3px;border-top:none}
+.hcell-num{width:36px;height:20px;border:1px solid var(--bdr);background:var(--sur2);display:flex;align-items:center;justify-content:center;font-size:7px;font-family:'Share Tech Mono',monospace;color:var(--tx2);flex-shrink:0;transition:all .1s;}
+.hcell:hover .hcell-blank,.hcell:hover .hcell-num{border-color:var(--acc);color:var(--acc);background:rgba(245,166,35,.08)}
+.hcell.has .hcell-blank,.hcell.has .hcell-num{background:var(--grn2);border-color:var(--grn3);color:var(--grn)}
+.hcell.sel .hcell-blank,.hcell.sel .hcell-num{background:var(--acc)!important;border-color:var(--acc)!important;color:#000!important;font-weight:700}
+
+/* Zone */
+.zone{border:1px solid var(--bdr);background:var(--sur2);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--tx2);cursor:pointer;flex-shrink:0;transition:all .1s;text-align:center}
+.zone:hover{border-color:var(--acc);color:var(--acc);background:rgba(245,166,35,.08)}
+.zone.has{background:var(--grn2);border-color:var(--grn3);color:var(--grn)}
+.zone.sel{background:var(--acc)!important;border-color:var(--acc)!important;color:#000!important;font-weight:700}
+
+/* Labels */
+.lbl{font-size:7px;font-family:'Share Tech Mono',monospace;color:var(--tx2);background:var(--sur);border:1px solid var(--bdr);border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:1px 2px;white-space:nowrap}
+
+/* Side panel */
+.spanel{width:290px;flex-shrink:0;background:var(--sur);border-left:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
 .ph{padding:14px 16px;border-bottom:1px solid var(--bdr)}
 .pt{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--tx2);margin-bottom:5px}
 .sid{font-size:20px;font-weight:900;color:var(--acc);font-family:'Share Tech Mono',monospace}
@@ -73,11 +115,11 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .oss{margin-top:14px;padding-top:14px;border-top:1px solid var(--bdr)}
 .ost{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--tx2);margin-bottom:7px}
 .osl{display:flex;flex-wrap:wrap;gap:4px}
-.osb{padding:3px 7px;background:var(--acc2);border:1px solid rgba(245,166,35,.25);border-radius:5px;font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--acc);cursor:pointer;transition:background .1s}
+.osb{padding:3px 7px;background:var(--acc2);border:1px solid rgba(245,166,35,.25);border-radius:5px;font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--acc);cursor:pointer}
 .osb:hover{background:rgba(245,166,35,.25)}
 .toast{position:fixed;bottom:18px;right:18px;background:var(--sur);border:1px solid var(--acc);border-radius:8px;padding:9px 16px;font-size:12px;color:var(--acc);z-index:999;transform:translateY(55px);opacity:0;transition:all .25s;pointer-events:none}
 .toast.show{transform:translateY(0);opacity:1}
-::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
 </style>
 </head>
 <body>
@@ -100,7 +142,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
   </div>
 </header>
 <div class="bwrap">
-  <div class="mscroll"><div id="mc"></div></div>
+  <div class="mscroll"><div id="mc" style="display:inline-flex;flex-direction:column;gap:0"></div></div>
   <div class="spanel">
     <div class="ph"><div class="pt">格位資訊</div><div id="phc"><div class="sid" style="color:var(--tx2);font-size:14px">請點選格位</div></div></div>
     <div class="pb" id="pb"><div class="estate"><div class="eico">🏮</div><div class="etxt">點選地圖上的格位<br>查看或編輯格主資訊</div></div></div>
@@ -108,28 +150,65 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 </div>
 <div class="toast" id="toast"></div>
 <script>
-let data=JSON.parse(localStorage.getItem('nm3')||'{}');
+// Cell dimensions
+const BW=22, NW=28, CH=24; // blank width, num width, cell height
+const HCW=36, HBH=16, HNH=20; // horizontal cell
+const G=1, A=8; // gap, aisle
+
+let data=JSON.parse(localStorage.getItem('nm7')||'{}');
 const DAYS=['thu','fri','sat','sun'],DL={thu:'週四',fri:'週五',sat:'週六',sun:'週日'};
 let today='thu',selKey=null;
 
-function r(n){return Array.from({length:n},(_,i)=>i+1)}
+function rng(n){return Array.from({length:n},(_,i)=>i+1)}
 function sk(row,num){return row+'|'+num}
 function pk(key){const i=key.lastIndexOf('|');return[key.slice(0,i),key.slice(i+1)]}
 function gi(key){return data[key]&&data[key][today]?data[key][today]:null}
-
 function D(cls){const e=document.createElement('div');if(cls)e.className=cls;return e}
-function vg(h){const e=D();e.style.height=h+'px';return e}
-function hg(w){const e=D();e.style.cssText=`width:${w}px;flex-shrink:0`;return e}
+function frow(g){const e=D();e.style.cssText=`display:flex;flex-direction:row;gap:${g??G}px;align-items:flex-start`;return e}
+function fcol(g){const e=D();e.style.cssText=`display:flex;flex-direction:column;gap:${g??G}px`;return e}
+function vsp(h){const e=D();e.style.height=h+'px';return e}
+function hsp(w){const e=D();e.style.cssText=`width:${w}px;flex-shrink:0`;return e}
 
-function makeStall(rowId,num,wide){
+/* Vertical stall: blank | number | blank */
+function makeStall(rowId,num){
   const key=sk(rowId,num);
-  const e=D('stall'+(wide?' stall-w':''));
+  const wrap=D('cell');
+  wrap.dataset.key=key;
+  const b1=D('cell-blank');b1.dataset.key=key;
+  const n=D('cell-num');n.dataset.key=key;
+  const s=String(num);n.textContent=s.length>3?s.slice(0,3):s;
+  n.title=`${rowId} ${num}號`;
+  const b2=D('cell-blank');b2.dataset.key=key;
+  wrap.appendChild(b1);wrap.appendChild(n);wrap.appendChild(b2);
+  refreshOne(wrap,key);
+  wrap.addEventListener('click',()=>selectStall(key));
+  return wrap;
+}
+
+/* Horizontal stall for 13排/15排: blank / number / blank stacked */
+function makeHStall(rowId,num){
+  const key=sk(rowId,num);
+  const wrap=D('hcell');
+  wrap.dataset.key=key;
+  const b1=D('hcell-blank');b1.dataset.key=key;
+  const n=D('hcell-num');n.dataset.key=key;
+  const s=String(num);n.textContent=s.length>3?s.slice(0,3):s;
+  n.title=`${rowId} ${num}號`;
+  const b2=D('hcell-blank');b2.dataset.key=key;
+  wrap.appendChild(b1);wrap.appendChild(n);wrap.appendChild(b2);
+  refreshOne(wrap,key);
+  wrap.addEventListener('click',()=>selectStall(key));
+  return wrap;
+}
+
+function makeZone(rowId,w,h){
+  const key=sk(rowId,'z');
+  const e=D('zone');
   e.dataset.key=key;
-  const s=String(num);
-  e.textContent=s.length>3?s.slice(0,3):s;
-  e.title=`${rowId} ${num}號`;
+  e.style.cssText=`width:${w}px;height:${h}px`;
+  e.textContent=rowId;
   refreshOne(e,key);
-  e.addEventListener('click',()=>sel(key));
+  e.addEventListener('click',()=>selectStall(key));
   return e;
 }
 
@@ -138,146 +217,168 @@ function refreshOne(e,key){
   e.classList.toggle('has',!!(info&&info.name));
   e.classList.toggle('sel',key===selKey);
 }
-function refreshAll(){document.querySelectorAll('.stall').forEach(e=>refreshOne(e,e.dataset.key))}
+function refreshAll(){
+  document.querySelectorAll('.cell,.hcell,.zone').forEach(e=>{
+    if(e.dataset.key)refreshOne(e,e.dataset.key);
+  });
+}
 
-/* vertical column: tiny header label + stalls */
+/* Column width = BW + NW + BW = 72px */
+const CW = BW+NW+BW;
+
+function colLbl(text){
+  const e=D('lbl');
+  e.style.cssText=`width:${CW}px;height:14px;font-size:7px;margin-bottom:${G}px;text-align:center`;
+  e.textContent=text;return e;
+}
+function rowLbl(text){
+  const e=D('lbl');
+  e.style.cssText=`width:30px;height:${CH}px;font-size:7px;flex-shrink:0`;
+  e.textContent=text;return e;
+}
+
+/* Vertical column */
 function vcol(rowId,stalls){
-  const c=D();c.style.cssText='display:flex;flex-direction:column;align-items:center;gap:2px';
-  const lbl=D('rlbl');lbl.style.cssText='height:14px;width:34px;font-size:7px;writing-mode:horizontal-tb';lbl.textContent=rowId;
-  c.appendChild(lbl);
-  stalls.forEach(n=>c.appendChild(makeStall(rowId,n)));
-  return c;
+  const col=fcol(G);
+  col.appendChild(colLbl(rowId));
+  stalls.forEach(n=>col.appendChild(makeStall(rowId,n)));
+  return col;
 }
 
-/* horizontal row: side label + stalls */
-function hrowS(rowId,stalls,wide){
-  const d=D();d.style.cssText='display:flex;flex-direction:row;align-items:center;gap:2px';
-  const lbl=D('rlbl rlbl-h');lbl.style.cssText='height:26px;min-width:28px;font-size:7px;padding:2px 3px';lbl.textContent=rowId;
-  d.appendChild(lbl);
-  stalls.forEach(n=>d.appendChild(makeStall(rowId,n,wide)));
-  return d;
+/* Pair: two vcols side by side */
+function vpair(a,b,n){
+  const wrap=frow(A);
+  wrap.appendChild(vcol(a,rng(n)));
+  wrap.appendChild(vcol(b,rng(n)));
+  return wrap;
 }
 
-/* zone box with grid */
-function zbox(rowId,stalls,cols){
-  cols=cols||stalls.length;
-  const box=D('zone-box');
-  const lbl=D('zone-lbl');lbl.textContent=rowId;box.appendChild(lbl);
-  const grid=D();grid.style.cssText=`display:grid;grid-template-columns:repeat(${cols},34px);gap:2px`;
-  stalls.forEach(n=>grid.appendChild(makeStall(rowId,n)));
-  box.appendChild(grid);
-  return box;
-}
-
-function flex(dir,gap,...kids){
-  const d=D();d.style.cssText=`display:flex;flex-direction:${dir};gap:${gap}px;align-items:flex-start`;
-  kids.forEach(k=>k&&d.appendChild(k));return d;
+/* Horizontal row of stalls */
+function hrowStalls(rowId,stalls){
+  const row=frow(G);
+  row.style.alignItems='center';
+  row.appendChild(rowLbl(rowId));
+  stalls.forEach(n=>row.appendChild(makeHStall(rowId,n)));
+  return row;
 }
 
 function buildMap(){
   const mc=document.getElementById('mc');
-  mc.style.cssText='display:flex;flex-direction:column;gap:0;width:max-content';
   mc.innerHTML='';
 
-  /* ── 1. 13排 top horizontal ── */
-  mc.appendChild(hrowS('13排',r(47),true));
-  mc.appendChild(vg(6));
+  /* ══ 1. 13排 top horizontal ══ */
+  mc.appendChild(hrowStalls('13排',rng(47)));
+  mc.appendChild(vsp(A));
 
-  /* ── 2. Main vertical columns ── */
-  const mainRow=D();mainRow.style.cssText='display:flex;flex-direction:row;gap:3px;align-items:flex-start';
+  /* ══ 2. Main columns + 15排 block ══
+     Left-to-right order:
+     十四排 | 一排+二排 | 三排+四排 | A排+B排 | 五排+六排 | 七排+八排 | 九排+十排 | 十一排+十二排
+     [below: 15排 + H.I/G/F + 二十三排]
+     十六排+十七排 | 十八排+十九排 | 二十排+二十一排 | 二十二排
 
-  // 十四排 standalone
-  mainRow.appendChild(vcol('十四排',r(36)));
-  mainRow.appendChild(hg(4));
+     二十二排 aligns under 13排 47號 (rightmost)
+     So we render right columns first conceptually but display left→right
+  */
 
-  // paired columns
-  function pair(a,b,n){const d=D();d.style.cssText='display:flex;flex-direction:row;gap:1px';d.appendChild(vcol(a,r(n)));d.appendChild(vcol(b,r(n)));return d}
-  mainRow.appendChild(pair('一排','二排',32));
-  mainRow.appendChild(pair('三排','四排',32));
-  mainRow.appendChild(pair('A排','B排',32));
-  mainRow.appendChild(pair('五排','六排',32));
-  mainRow.appendChild(pair('七排','八排',32));
-  mainRow.appendChild(pair('九排','十排',32));
-  mainRow.appendChild(pair('十一排','十二排',32));
-  mainRow.appendChild(hg(4));
-  mainRow.appendChild(pair('十六排','十七排',43));
-  mainRow.appendChild(pair('十八排','十九排',45));
-  mainRow.appendChild(pair('二十排','二十一排',46));
-  mainRow.appendChild(hg(4));
-  mainRow.appendChild(vcol('二十二排',r(46)));
+  // Left group columns (十四排 through 十二排)
+  const leftCols=frow(A);
+  leftCols.style.alignItems='flex-start';
+  leftCols.appendChild(vcol('十四排',rng(36)));
+  [['一排','二排',32],['三排','四排',32],['A排','B排',32],
+   ['五排','六排',32],['七排','八排',32],['九排','十排',32],['十一排','十二排',32]
+  ].forEach(([a,b,n])=>leftCols.appendChild(vpair(a,b,n)));
 
+  // Left block: left cols + 15排 below + zones below that
+  const leftBlock=fcol(A);
+  leftBlock.style.alignItems='flex-start';
+  leftBlock.appendChild(leftCols);
+  leftBlock.appendChild(hrowStalls('15排',rng(29)));
+
+  // H.I G F + 二十三排 right-aligned under 15排
+  // 15排 total width = rowLbl(30) + G + 29*(HCW+G) - G
+  const row15W = 30 + G + 29*(HCW+G) - G;
+  const zh=CH*6, zw=CW*2;
+  const zonesWrap=D();
+  zonesWrap.style.cssText=`display:flex;flex-direction:row;justify-content:flex-end;width:${row15W}px`;
+  const zonesRow=frow(G);
+  zonesRow.style.alignItems='flex-start';
+  zonesRow.appendChild(makeZone('H.I區',zw,zh));
+  zonesRow.appendChild(makeZone('G區',zw,zh));
+  zonesRow.appendChild(makeZone('F區',zw,zh));
+  zonesRow.appendChild(hsp(A));
+  zonesRow.appendChild(vcol('二十三排',rng(6)));
+  zonesWrap.appendChild(zonesRow);
+  leftBlock.appendChild(zonesWrap);
+
+  // Right group columns (十六排 through 二十二排)
+  const rightCols=frow(A);
+  rightCols.style.alignItems='flex-start';
+  [['十六排','十七排',43],['十八排','十九排',45],['二十排','二十一排',46]
+  ].forEach(([a,b,n])=>rightCols.appendChild(vpair(a,b,n)));
+  rightCols.appendChild(vcol('二十二排',rng(46)));
+
+  // Full main row
+  const mainRow=frow(A);
+  mainRow.style.alignItems='flex-start';
+  mainRow.appendChild(leftBlock);
+  mainRow.appendChild(hsp(A));
+  mainRow.appendChild(rightCols);
   mc.appendChild(mainRow);
-  mc.appendChild(vg(6));
+  mc.appendChild(vsp(A));
 
-  /* ── 3. 15排 horizontal ── */
-  mc.appendChild(hrowS('15排',r(29),true));
-  mc.appendChild(vg(4));
+  // Divider
+  const divEl=D();divEl.style.cssText=`height:1px;background:var(--bdr);margin-bottom:${A}px`;
+  mc.appendChild(divEl);
 
-  /* ── 4. 二十三排 + H.I G F zones ── */
-  const row4=D();row4.style.cssText='display:flex;flex-direction:row;gap:6px;align-items:flex-start';
-  row4.appendChild(vcol('二十三排',r(6)));
-  row4.appendChild(hg(4));
-  row4.appendChild(zbox('H.I區',r(8)));
-  row4.appendChild(zbox('G區',r(8)));
-  row4.appendChild(zbox('F區',r(8)));
-  mc.appendChild(row4);
-  mc.appendChild(vg(8));
-
-  /* ── divider ── */
-  const sep=D();sep.style.cssText='height:1px;background:var(--bdr);margin:2px 0';mc.appendChild(sep);
-  mc.appendChild(vg(6));
-
-  /* ── 5. Bottom row ── */
-  const bot=D();bot.style.cssText='display:flex;flex-direction:row;gap:8px;align-items:flex-end;flex-wrap:wrap';
+  /* ══ 3. Bottom area ══ */
+  const botArea=frow(A);
+  botArea.style.alignItems='flex-start';
 
   // Y區
-  const yb=D('zone-box');
-  const yl=D('zone-lbl');yl.textContent='Y區';yb.appendChild(yl);
-  r(2).forEach(n=>yb.appendChild(makeStall('Y區',n)));
-  bot.appendChild(yb);
+  const yCol=fcol(G);
+  yCol.appendChild(colLbl('Y區'));
+  yCol.appendChild(makeZone('Y區',CW,CH*2));
+  botArea.appendChild(yCol);
 
-  // 37排 + D C E
-  const b37=D();b37.style.cssText='display:flex;flex-direction:column;gap:3px';
-  b37.appendChild(hrowS('37排',r(5)));
-  const zr=D();zr.style.cssText='display:flex;flex-direction:row;gap:3px';
-  zr.appendChild(zbox('D區',r(7)));
-  zr.appendChild(zbox('C區',r(7)));
-  zr.appendChild(zbox('E區',r(7)));
-  b37.appendChild(zr);
-  bot.appendChild(b37);
+  // 37排 + D C E zones
+  const b37=frow(A);
+  b37.style.alignItems='flex-start';
+  b37.appendChild(vcol('37排',rng(5)));
+  const dce=frow(G);
+  dce.appendChild(makeZone('D區',CW*2,CH*4));
+  dce.appendChild(makeZone('C區',CW*2,CH*4));
+  dce.appendChild(makeZone('E區',CW*2,CH*4));
+  b37.appendChild(dce);
+  botArea.appendChild(b37);
 
-  // pairs 24-35排
-  [['24排','25排'],['26排','27排'],['28排','29排'],['30排','31排'],['32排','33排'],['34排','35排']].forEach(([a,b])=>{
-    const blk=D();blk.style.cssText='display:flex;flex-direction:column;gap:2px';
-    blk.appendChild(hrowS(a,r(5)));
-    blk.appendChild(hrowS(b,r(5)));
-    bot.appendChild(blk);
-  });
+  // 24-35排 vertical pairs
+  [['24排','25排'],['26排','27排'],['28排','29排'],
+   ['30排','31排'],['32排','33排'],['34排','35排']
+  ].forEach(([a,b])=>botArea.appendChild(vpair(a,b,5)));
 
   // 36排
-  const b36=D();b36.style.cssText='display:flex;flex-direction:column;gap:2px';
-  b36.appendChild(hrowS('36排',[1,2,3,4,5,6,7]));
-  bot.appendChild(b36);
+  botArea.appendChild(vcol('36排',[1,2,3,4,5,6,7]));
 
-  mc.appendChild(bot);
+  mc.appendChild(botArea);
   updateStats();
 }
 
 function updateStats(){
   let t=0,f=0;
-  document.querySelectorAll('.stall').forEach(e=>{t++;if(gi(e.dataset.key)?.name)f++;});
+  document.querySelectorAll('.cell').forEach(e=>{t++;if(gi(e.dataset.key)?.name)f++;});
   document.getElementById('fc').textContent=f;
   document.getElementById('ec').textContent=t-f;
 }
 
-function sel(key){
+function selectStall(key){
   selKey=key;
-  document.querySelectorAll('.stall').forEach(e=>e.classList.toggle('sel',e.dataset.key===key));
+  document.querySelectorAll('.cell,.hcell,.zone').forEach(e=>e.classList.toggle('sel',e.dataset.key===key));
   const[rowId,num]=pk(key);renderPanel(key,rowId,num);
 }
 
 function renderPanel(key,rowId,num){
-  document.getElementById('phc').innerHTML=`<div class="sid">${rowId} ${num}號</div><div class="dbadge">${DL[today]}</div>`;
+  const dn=num==='z'?'（區塊）':num+'號';
+  document.getElementById('phc').innerHTML=`<div class="sid">${rowId} ${dn}</div><div class="dbadge">${DL[today]}</div>`;
   const info=gi(key)||{};
   const ds=DAYS.map(d=>{const di=data[key]&&data[key][d];return`<div class="drw ${d===today?'cur':''}"><div class="dn">${DL[d]}</div><div class="do ${di&&di.name?'':'empty'}">${di&&di.name?di.name:'（空）'}</div></div>`}).join('');
   let oss='';
@@ -296,7 +397,7 @@ function renderPanel(key,rowId,num){
     ${oss}`;
 }
 
-function fk(key){const[r,n]=pk(key);return`${r}${n}`}
+function fk(key){const[r,n]=pk(key);return n==='z'?r:`${r} ${n}號`}
 
 function save(key){
   const name=document.getElementById('fn').value.trim();
@@ -304,25 +405,25 @@ function save(key){
   const address=document.getElementById('fa').value.trim();
   if(!data[key])data[key]={};
   data[key][today]={name,phone,address};
-  localStorage.setItem('nm3',JSON.stringify(data));
+  localStorage.setItem('nm7',JSON.stringify(data));
   refreshAll();updateStats();
   const[r,n]=pk(key);renderPanel(key,r,n);
-  toast('✅ 已儲存');
+  showToast('✅ 已儲存');
 }
 
 function del(key){
   if(!confirm('確定清除？'))return;
   if(data[key]){delete data[key][today];if(!Object.keys(data[key]).length)delete data[key];}
-  localStorage.setItem('nm3',JSON.stringify(data));
+  localStorage.setItem('nm7',JSON.stringify(data));
   refreshAll();updateStats();
   const[r,n]=pk(key);renderPanel(key,r,n);
-  toast('🗑 已清除');
+  showToast('🗑 已清除');
 }
 
 function jump(key){
-  const e=document.querySelector(`.stall[data-key="${CSS.escape(key)}"]`);
+  const e=document.querySelector(`[data-key="${CSS.escape(key)}"].cell,[data-key="${CSS.escape(key)}"].hcell,[data-key="${CSS.escape(key)}"].zone`);
   if(e)e.scrollIntoView({behavior:'smooth',block:'center'});
-  sel(key);
+  selectStall(key);
 }
 
 document.getElementById('si').addEventListener('input',function(){
@@ -343,11 +444,14 @@ document.addEventListener('click',e=>{if(!e.target.closest('.swrap'))document.ge
 function hlOwner(name){
   document.getElementById('sr').classList.remove('open');
   document.getElementById('si').value=name;
-  document.querySelectorAll('.stall.hl').forEach(e=>e.classList.remove('hl'));
+  document.querySelectorAll('.cell.hl,.hcell.hl').forEach(e=>e.classList.remove('hl'));
   const stalls=Object.keys(data).filter(k=>data[k][today]&&data[k][today].name===name);
-  stalls.forEach(key=>{const e=document.querySelector(`.stall[data-key="${CSS.escape(key)}"]`);if(e){e.classList.add('hl');e.scrollIntoView({behavior:'smooth',block:'center'});}});
-  if(!stalls.length){toast(`${name} 本日沒有格位`);return;}
-  toast(`已標示 ${name} 的 ${stalls.length} 個格位`);sel(stalls[0]);
+  stalls.forEach(key=>{
+    const e=document.querySelector(`.cell[data-key="${CSS.escape(key)}"],.hcell[data-key="${CSS.escape(key)}"]`);
+    if(e){e.classList.add('hl');e.scrollIntoView({behavior:'smooth',block:'center'});}
+  });
+  if(!stalls.length){showToast(`${name} 本日沒有格位`);return;}
+  showToast(`已標示 ${name} 的 ${stalls.length} 個格位`);selectStall(stalls[0]);
 }
 
 document.getElementById('dayTabs').addEventListener('click',e=>{
@@ -359,7 +463,7 @@ document.getElementById('dayTabs').addEventListener('click',e=>{
 });
 
 let tt;
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2000);}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2000);}
 
 buildMap();
 </script>
