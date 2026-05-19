@@ -169,33 +169,45 @@ function fcol(g){const e=D();e.style.cssText=`display:flex;flex-direction:column
 function vsp(h){const e=D();e.style.height=h+'px';return e}
 function hsp(w){const e=D();e.style.cssText=`width:${w}px;flex-shrink:0`;return e}
 
-/* Vertical stall: blank | number | blank */
+/* Vertical stall: number號 | blank - 2 cols */
 function makeStall(rowId,num){
   const key=sk(rowId,num);
   const wrap=D('cell');
   wrap.dataset.key=key;
-  const b1=D('cell-blank');b1.dataset.key=key;
+  const s=String(num);
+
   const n=D('cell-num');n.dataset.key=key;
-  const s=String(num);n.textContent=s.length>3?s.slice(0,3):s;
+  n.style.cssText=`width:${NW}px;height:${CH}px;border:1px solid var(--bdr);background:var(--sur2);display:flex;align-items:center;justify-content:center;font-size:8px;font-family:'Share Tech Mono',monospace;color:var(--tx2);flex-shrink:0;transition:all .1s;border-right:none;border-radius:3px 0 0 3px`;
+  n.textContent=s+'號';
   n.title=`${rowId} ${num}號`;
-  const b2=D('cell-blank');b2.dataset.key=key;
-  wrap.appendChild(b1);wrap.appendChild(n);wrap.appendChild(b2);
+
+  const b=D('cell-blank');b.dataset.key=key;
+  b.style.cssText=`width:${NW}px;height:${CH}px;border:1px solid var(--bdr);background:var(--sur2);border-left:none;border-radius:0 3px 3px 0;flex-shrink:0;transition:all .1s`;
+
+  wrap.style.cssText='display:flex;flex-direction:row;gap:0;flex-shrink:0;cursor:pointer';
+  wrap.appendChild(n);wrap.appendChild(b);
   refreshOne(wrap,key);
   wrap.addEventListener('click',()=>selectStall(key));
   return wrap;
 }
 
-/* Horizontal stall for 13排/15排: blank / number / blank stacked */
+/* Horizontal stall: number號 | blank - 2 cols stacked */
 function makeHStall(rowId,num){
   const key=sk(rowId,num);
   const wrap=D('hcell');
   wrap.dataset.key=key;
-  const b1=D('hcell-blank');b1.dataset.key=key;
+  const s=String(num);
+
   const n=D('hcell-num');n.dataset.key=key;
-  const s=String(num);n.textContent=s.length>3?s.slice(0,3):s;
+  n.style.cssText=`width:${HCW}px;height:${HNH}px;border:1px solid var(--bdr);background:var(--sur2);display:flex;align-items:center;justify-content:center;font-size:7px;font-family:'Share Tech Mono',monospace;color:var(--tx2);flex-shrink:0;transition:all .1s;border-bottom:none;border-radius:3px 3px 0 0`;
+  n.textContent=s+'號';
   n.title=`${rowId} ${num}號`;
-  const b2=D('hcell-blank');b2.dataset.key=key;
-  wrap.appendChild(b1);wrap.appendChild(n);wrap.appendChild(b2);
+
+  const b=D('hcell-blank');b.dataset.key=key;
+  b.style.cssText=`width:${HCW}px;height:${HBH}px;border:1px solid var(--bdr);background:var(--sur2);border-top:none;border-radius:0 0 3px 3px;flex-shrink:0;transition:all .1s`;
+
+  wrap.style.cssText='display:flex;flex-direction:column;gap:0;flex-shrink:0;cursor:pointer';
+  wrap.appendChild(n);wrap.appendChild(b);
   refreshOne(wrap,key);
   wrap.addEventListener('click',()=>selectStall(key));
   return wrap;
@@ -221,10 +233,15 @@ function refreshAll(){
   document.querySelectorAll('.cell,.hcell,.zone').forEach(e=>{
     if(e.dataset.key)refreshOne(e,e.dataset.key);
   });
+  // Refresh pair rows
+  document.querySelectorAll('div').forEach(row=>{
+    if(!row._isPairRow)return;
+    applyPairStyle(row._pairA.key,row._pairA.els,row._pairB.key,row._pairB.els);
+  });
 }
 
-/* Column width = BW + NW + BW = 72px */
-const CW = BW+NW+BW;
+/* Single col width = NW*2 (num + blank) */
+const CW = NW*2;
 
 function colLbl(text){
   const e=D('lbl');
@@ -245,12 +262,89 @@ function vcol(rowId,stalls){
   return col;
 }
 
-/* Pair: two vcols side by side */
+/* Pair: blank|numA|blank|numB|blank, shared middle blank */
 function vpair(a,b,n){
-  const wrap=frow(A);
-  wrap.appendChild(vcol(a,rng(n)));
-  wrap.appendChild(vcol(b,rng(n)));
+  const wrap=fcol(0);
+  // Header: A name left, B name right
+  const hdr=D('lbl');
+  hdr.style.cssText=`width:${BW+NW+BW+NW+BW}px;height:14px;font-size:7px;display:flex;flex-direction:row;justify-content:space-between;padding:0 4px;margin-bottom:${G}px;border-radius:3px`;
+  const sA=document.createElement('span');sA.textContent=a;
+  const sB=document.createElement('span');sB.textContent=b;
+  hdr.appendChild(sA);hdr.appendChild(sB);
+  wrap.appendChild(hdr);
+
+  rng(n).forEach(num=>{
+    const keyA=sk(a,num), keyB=sk(b,num);
+    const sNum=String(num);
+    const disp=sNum.length>3?sNum.slice(0,3):sNum;
+
+    const row=D();
+    row.style.cssText=`display:flex;flex-direction:row;gap:0;margin-bottom:${G}px`;
+
+    // blank A
+    const b1=D('cell-blank');
+    b1.style.cssText=`width:${BW}px;height:${CH}px;border:1px solid var(--bdr);background:var(--sur2);border-right:none;border-radius:3px 0 0 3px;cursor:pointer;transition:all .1s`;
+    b1.dataset.key=keyA;
+
+    // num A
+    const nA=D('cell-num');
+    nA.style.cssText=`width:${NW}px;height:${CH}px;border:1px solid var(--bdr);background:var(--sur2);border-right:none;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:'Share Tech Mono',monospace;color:var(--tx2);cursor:pointer;transition:all .1s;border-radius:0`;
+    nA.textContent=disp;nA.title=`${a} ${num}號`;nA.dataset.key=keyA;
+
+    // shared middle blank
+    const bM=D('cell-blank');
+    bM.style.cssText=`width:${BW}px;height:${CH}px;border:1px solid var(--bdr);background:var(--sur2);border-left:none;border-right:none;cursor:pointer;transition:all .1s;border-radius:0`;
+    bM.dataset.key=keyA; // clicking middle goes to A
+
+    // num B
+    const nB=D('cell-num');
+    nB.style.cssText=`width:${NW}px;height:${CH}px;border:1px solid var(--bdr);background:var(--sur2);border-left:none;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:'Share Tech Mono',monospace;color:var(--tx2);cursor:pointer;transition:all .1s;border-radius:0`;
+    nB.textContent=disp;nB.title=`${b} ${num}號`;nB.dataset.key=keyB;
+
+    // blank B
+    const b2=D('cell-blank');
+    b2.style.cssText=`width:${BW}px;height:${CH}px;border:1px solid var(--bdr);background:var(--sur2);border-left:none;border-radius:0 3px 3px 0;cursor:pointer;transition:all .1s`;
+    b2.dataset.key=keyB;
+
+    // click handlers
+    [b1,nA,bM].forEach(el=>el.addEventListener('click',()=>selectStall(keyA)));
+    [nB,b2].forEach(el=>el.addEventListener('click',()=>selectStall(keyB)));
+
+    // hover effect via mouseenter/leave
+    const elsA=[b1,nA,bM], elsB=[nB,b2];
+    elsA.forEach(el=>{
+      el.addEventListener('mouseenter',()=>{if(selKey!==keyA)elsA.forEach(e=>{e.style.borderColor='var(--acc)';e.style.background='rgba(245,166,35,.08)';e.style.color='var(--acc)'})});
+      el.addEventListener('mouseleave',()=>applyPairStyle(keyA,elsA,keyB,elsB));
+    });
+    elsB.forEach(el=>{
+      el.addEventListener('mouseenter',()=>{if(selKey!==keyB)elsB.forEach(e=>{e.style.borderColor='var(--acc)';e.style.background='rgba(245,166,35,.08)';e.style.color='var(--acc)'})});
+      el.addEventListener('mouseleave',()=>applyPairStyle(keyA,elsA,keyB,elsB));
+    });
+
+    // store for refresh
+    row._pairA={key:keyA,els:elsA};
+    row._pairB={key:keyB,els:elsB};
+    row._isPairRow=true;
+
+    row.appendChild(b1);row.appendChild(nA);row.appendChild(bM);row.appendChild(nB);row.appendChild(b2);
+    wrap.appendChild(row);
+  });
   return wrap;
+}
+
+function applyPairStyle(keyA,elsA,keyB,elsB){
+  const infoA=gi(keyA),infoB=gi(keyB);
+  const selA=selKey===keyA,selB=selKey===keyB;
+  elsA.forEach(e=>{
+    e.style.background=selA?'var(--acc)':(infoA&&infoA.name)?'var(--grn2)':'var(--sur2)';
+    e.style.borderColor=selA?'var(--acc)':(infoA&&infoA.name)?'var(--grn3)':'var(--bdr)';
+    e.style.color=selA?'#000':(infoA&&infoA.name)?'var(--grn)':'var(--tx2)';
+  });
+  elsB.forEach(e=>{
+    e.style.background=selB?'var(--acc)':(infoB&&infoB.name)?'var(--grn2)':'var(--sur2)';
+    e.style.borderColor=selB?'var(--acc)':(infoB&&infoB.name)?'var(--grn3)':'var(--bdr)';
+    e.style.color=selB?'#000':(infoB&&infoB.name)?'var(--grn)':'var(--tx2)';
+  });
 }
 
 /* Horizontal row of stalls */
@@ -297,14 +391,14 @@ function buildMap(){
   // H.I G F + 二十三排 right-aligned under 15排
   // 15排 total width = rowLbl(30) + G + 29*(HCW+G) - G
   const row15W = 30 + G + 29*(HCW+G) - G;
-  const zh=CH*6, zw=CW*2;
+  const zh=CH*6, zw=CW*3;
   const zonesWrap=D();
   zonesWrap.style.cssText=`display:flex;flex-direction:row;justify-content:flex-end;width:${row15W}px`;
   const zonesRow=frow(G);
   zonesRow.style.alignItems='flex-start';
-  zonesRow.appendChild(makeZone('H.I區',zw,zh));
-  zonesRow.appendChild(makeZone('G區',zw,zh));
-  zonesRow.appendChild(makeZone('F區',zw,zh));
+  zonesRow.appendChild(makeZone('H.I區\n(八格)',zw,zh));
+  zonesRow.appendChild(makeZone('G區\n(八格)',zw,zh));
+  zonesRow.appendChild(makeZone('F區\n(八格)',zw,zh));
   zonesRow.appendChild(hsp(A));
   zonesRow.appendChild(vcol('二十三排',rng(6)));
   zonesWrap.appendChild(zonesRow);
@@ -317,49 +411,75 @@ function buildMap(){
   ].forEach(([a,b,n])=>rightCols.appendChild(vpair(a,b,n)));
   rightCols.appendChild(vcol('二十二排',rng(46)));
 
-  // Full main row
-  const mainRow=frow(A);
-  mainRow.style.alignItems='flex-start';
-  mainRow.appendChild(leftBlock);
-  mainRow.appendChild(hsp(A));
-  mainRow.appendChild(rightCols);
-  mc.appendChild(mainRow);
-  mc.appendChild(vsp(A));
+  // Full main row - left aligned, evenly spaced to fill 13排 width
+  // 13排 width = rowLbl(30) + G + 47*(HCW+G) - G
+  const row13W = 30 + G + 47*(HCW+G) - G;
 
-  // Divider
-  const divEl=D();divEl.style.cssText=`height:1px;background:var(--bdr);margin-bottom:${A}px`;
-  mc.appendChild(divEl);
+  // Total columns width:
+  // Left: 十四排(CW) + 7 pairs(BW+NW+BW+NW+BW each)
+  // Right: 3 pairs + 二十二排(CW)
+  const pairW = BW+NW+BW+NW+BW;
+  const totalColsW = CW + 7*pairW + 3*pairW + CW;
+  // Remaining space to distribute as aisles (8 gaps in left, 1 between left/right, 3 gaps in right = 12 total)
+  const totalAisles = 12;
+  const aisleW = Math.floor((row13W - totalColsW) / totalAisles);
 
-  /* ══ 3. Bottom area ══ */
-  const botArea=frow(A);
-  botArea.style.alignItems='flex-start';
+  // Right group: rightCols on top, rightBot below (vertically stacked, same width)
+  const rightGroup=fcol(A);
+  rightGroup.style.alignItems='flex-start';
+  rightGroup.appendChild(rightCols);
 
-  // Y區
+  const divRight=D();divRight.style.cssText=`height:1px;background:var(--bdr);margin:${A}px 0`;
+  rightGroup.appendChild(divRight);
+
+  const rightBot=frow(aisleW);
+  rightBot.style.alignItems='flex-start';
+  rightBot.appendChild(vpair('30排','31排',5));
+  rightBot.appendChild(vpair('32排','33排',5));
+  rightBot.appendChild(vpair('34排','35排',5));
+  rightBot.appendChild(vcol('36排',[1,2,3,4,5,6,7]));
+  rightGroup.appendChild(rightBot);
+
+  // Left group: leftBlock on top, leftBot below
+  const leftGroup=fcol(A);
+  leftGroup.style.alignItems='flex-start';
+  leftGroup.appendChild(leftBlock);
+
+  const divLeft=D();divLeft.style.cssText=`height:1px;background:var(--bdr);margin:${A}px 0`;
+  leftGroup.appendChild(divLeft);
+
+  const leftBotRow=frow(aisleW);
+  leftBotRow.style.alignItems='flex-start';
   const yCol=fcol(G);
   yCol.appendChild(colLbl('Y區'));
   yCol.appendChild(makeZone('Y區',CW,CH*2));
-  botArea.appendChild(yCol);
-
-  // 37排 + D C E zones
-  const b37=frow(A);
-  b37.style.alignItems='flex-start';
-  b37.appendChild(vcol('37排',rng(5)));
+  leftBotRow.appendChild(yCol);
+  const b37wrap=frow(aisleW);
+  b37wrap.style.alignItems='flex-start';
+  b37wrap.appendChild(vcol('37排',rng(5)));
   const dce=frow(G);
-  dce.appendChild(makeZone('D區',CW*2,CH*4));
-  dce.appendChild(makeZone('C區',CW*2,CH*4));
-  dce.appendChild(makeZone('E區',CW*2,CH*4));
-  b37.appendChild(dce);
-  botArea.appendChild(b37);
+  dce.appendChild(makeZone('D區\n(七格)',CW*2,CH*4));
+  dce.appendChild(makeZone('C區\n(七格)',CW*2,CH*4));
+  dce.appendChild(makeZone('E區\n(七格)',CW*2,CH*4));
+  b37wrap.appendChild(dce);
+  leftBotRow.appendChild(b37wrap);
+  leftBotRow.appendChild(vpair('24排','25排',5));
+  leftBotRow.appendChild(vpair('26排','27排',5));
+  leftBotRow.appendChild(vpair('28排','29排',5));
+  leftGroup.appendChild(leftBotRow);
 
-  // 24-35排 vertical pairs
-  [['24排','25排'],['26排','27排'],['28排','29排'],
-   ['30排','31排'],['32排','33排'],['34排','35排']
-  ].forEach(([a,b])=>botArea.appendChild(vpair(a,b,5)));
+  // Full layout
+  const mainRow=frow(aisleW);
+  mainRow.style.alignItems='flex-start';
+  mainRow.appendChild(leftGroup);
+  mainRow.appendChild(hsp(aisleW));
+  mainRow.appendChild(rightGroup);
 
-  // 36排
-  botArea.appendChild(vcol('36排',[1,2,3,4,5,6,7]));
+  // Update gaps
+  leftCols.style.gap=aisleW+'px';
+  rightCols.style.gap=aisleW+'px';
 
-  mc.appendChild(botArea);
+  mc.appendChild(mainRow);
   updateStats();
 }
 
@@ -372,7 +492,7 @@ function updateStats(){
 
 function selectStall(key){
   selKey=key;
-  document.querySelectorAll('.cell,.hcell,.zone').forEach(e=>e.classList.toggle('sel',e.dataset.key===key));
+  refreshAll();
   const[rowId,num]=pk(key);renderPanel(key,rowId,num);
 }
 
