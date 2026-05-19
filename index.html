@@ -36,6 +36,16 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .sri-s span{background:var(--acc2);border-radius:3px;padding:1px 4px;margin-right:3px}
 .stats{font-size:11px;color:var(--tx2);display:flex;gap:10px;align-items:center}
 .sdot{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:3px}
+
+/* Quick find */
+.qfwrap{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.qflbl{font-size:11px;color:var(--tx2);white-space:nowrap}
+.qfsel{background:var(--sur2);border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;color:var(--tx);font-family:'Noto Sans TC',sans-serif;font-size:12px;outline:none;cursor:pointer;transition:border-color .2s}
+.qfsel:focus{border-color:var(--acc)}
+.qfinput{width:60px;background:var(--sur2);border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;color:var(--tx);font-family:'Share Tech Mono',monospace;font-size:12px;outline:none;transition:border-color .2s}
+.qfinput:focus{border-color:var(--acc)}
+.qfbtn{padding:5px 12px;background:var(--acc);border:none;border-radius:6px;color:#000;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.qfbtn:hover{background:#f7b94a}
 .bwrap{display:flex;flex:1;overflow:hidden;min-height:0}
 .mscroll{flex:1;overflow:auto;padding:14px;min-height:0}
 
@@ -139,6 +149,16 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
   <div class="stats">
     <span><span class="sdot" style="background:var(--grn)"></span><span id="fc">0</span> 已填</span>
     <span><span class="sdot" style="background:var(--sur2);border:1px solid var(--bdr)"></span><span id="ec">0</span> 空格</span>
+  </div>
+  <div class="qfwrap">
+    <span class="qflbl">格位查找</span>
+    <select class="qfsel" id="qfRow" onchange="updateNumSelect()">
+      <option value="">選擇排</option>
+    </select>
+    <select class="qfsel" id="qfNum" style="min-width:70px">
+      <option value="">選號碼</option>
+    </select>
+    <button class="qfbtn" onclick="quickFind()">前往</button>
   </div>
 </header>
 <div class="bwrap">
@@ -585,7 +605,69 @@ document.getElementById('dayTabs').addEventListener('click',e=>{
 let tt;
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2000);}
 
+const ROW_STALLS = {
+  '13排':rng(47),'十四排':rng(36),
+  '一排':rng(32),'二排':rng(32),'三排':rng(32),'四排':rng(32),
+  'A排':rng(32),'B排':rng(32),'五排':rng(32),'六排':rng(32),
+  '七排':rng(32),'八排':rng(32),'九排':rng(32),'十排':rng(32),
+  '十一排':rng(32),'十二排':rng(32),
+  '十六排':rng(43),'十七排':rng(43),'十八排':rng(45),'十九排':rng(45),
+  '二十排':rng(46),'二十一排':rng(46),'二十二排':rng(46),
+  '15排':rng(29),'二十三排':rng(6),
+  '37排':rng(5),'Y區':['z'],'D區':['z'],'C區':['z'],'E區':['z'],
+  'H.I區':['z'],'G區':['z'],'F區':['z'],
+  '24排':rng(5),'25排':rng(5),'26排':rng(5),'27排':rng(5),
+  '28排':rng(5),'29排':rng(5),'30排':rng(5),'31排':rng(5),
+  '32排':rng(5),'33排':rng(5),'34排':rng(5),'35排':rng(5),
+  '36排':[1,2,3,4,5,6,7]
+};
+
+function updateNumSelect(){
+  const rowId=document.getElementById('qfRow').value;
+  const numSel=document.getElementById('qfNum');
+  numSel.innerHTML='<option value="">選號碼</option>';
+  if(!rowId)return;
+  const stalls=ROW_STALLS[rowId]||[];
+  stalls.forEach(n=>{
+    const o=document.createElement('option');
+    o.value=n;
+    o.textContent=n==='z'?'（整區）':n+'號';
+    numSel.appendChild(o);
+  });
+}
+const ALL_ROWS = [
+  '13排','十四排','一排','二排','三排','四排','A排','B排',
+  '五排','六排','七排','八排','九排','十排','十一排','十二排',
+  '十六排','十七排','十八排','十九排','二十排','二十一排','二十二排',
+  '15排','二十三排',
+  '37排','Y區','D區','C區','E區','H.I區','G區','F區',
+  '24排','25排','26排','27排','28排','29排',
+  '30排','31排','32排','33排','34排','35排','36排'
+];
+
+function populateRowSelect(){
+  const sel=document.getElementById('qfRow');
+  ALL_ROWS.forEach(r=>{
+    const o=document.createElement('option');
+    o.value=r;o.textContent=r;
+    sel.appendChild(o);
+  });
+}
+
+function quickFind(){
+  const rowId=document.getElementById('qfRow').value;
+  const num=document.getElementById('qfNum').value;
+  if(!rowId){showToast('請選擇排');return;}
+  if(!num){showToast('請選擇號碼');return;}
+  const key=sk(rowId,num==='z'?'z':isNaN(num)?num:parseInt(num));
+  const el=document.querySelector(`.cell[data-key="${CSS.escape(key)}"],.hcell[data-key="${CSS.escape(key)}"],.zone[data-key="${CSS.escape(key)}"]`);
+  if(!el){showToast(`找不到 ${rowId} ${num}號`);return;}
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  selectStall(key);
+}
+
 buildMap();
+populateRowSelect();
 </script>
 </body>
 </html>
