@@ -46,6 +46,16 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .qfinput:focus{border-color:var(--acc)}
 .qfbtn{padding:5px 12px;background:var(--acc);border:none;border-radius:6px;color:#000;font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .qfbtn:hover{background:#f7b94a}
+
+/* Bulk edit table */
+.btbl{width:100%;border-collapse:collapse;font-size:12px}
+.btbl th{background:var(--sur2);color:var(--tx2);font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;border:1px solid var(--bdr);text-align:left;position:sticky;top:0;z-index:2}
+.btbl td{border:1px solid var(--bdr);padding:2px}
+.btbl tr:hover td{background:rgba(255,255,255,.02)}
+.btbl td:first-child{background:var(--sur2);color:var(--tx2);font-family:'Share Tech Mono',monospace;font-size:11px;padding:6px 10px;white-space:nowrap;text-align:center}
+.btbl input{width:100%;background:transparent;border:none;outline:none;color:var(--tx);font-family:'Noto Sans TC',sans-serif;font-size:12px;padding:6px 8px}
+.btbl input:focus{background:rgba(245,166,35,.08);border-radius:3px}
+.btbl tr.has-data td{background:rgba(62,207,110,.05)}
 .bwrap{display:flex;flex:1;overflow:hidden;min-height:0}
 .mscroll{flex:1;overflow:auto;padding:14px;min-height:0}
 
@@ -160,7 +170,39 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     </select>
     <button class="qfbtn" onclick="quickFind()">前往</button>
   </div>
+  <button class="qfbtn" style="background:var(--sur2);border:1px solid var(--bdr);color:var(--tx)" onclick="openBulk()">📋 大量編輯</button>
 </header>
+
+<!-- Bulk Edit Modal -->
+<div id="bulkModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:12px;width:90vw;max-width:900px;height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <!-- Modal header -->
+    <div style="padding:16px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px;flex-shrink:0">
+      <div style="font-size:16px;font-weight:700;color:var(--acc);flex:1">📋 大量編輯格位資料</div>
+      <select id="bulkDay" class="qfsel" style="font-size:12px">
+        <option value="thu">週四</option>
+        <option value="fri">週五</option>
+        <option value="sat">週六</option>
+        <option value="sun">週日</option>
+      </select>
+      <select id="bulkRow" class="qfsel" onchange="loadBulkTable()" style="font-size:12px">
+        <option value="">選擇排</option>
+      </select>
+      <button class="qfbtn" onclick="importBulk()" style="background:var(--grn);color:#000">✅ 匯入儲存</button>
+      <button class="qfbtn" onclick="closeBulk()" style="background:transparent;border:1px solid var(--bdr);color:var(--tx2)">✕ 關閉</button>
+    </div>
+    <!-- Tips -->
+    <div style="padding:8px 20px;font-size:11px;color:var(--tx2);background:var(--sur2);border-bottom:1px solid var(--bdr);flex-shrink:0">
+      💡 選擇排之後會載入所有格位，填寫完成後按「匯入儲存」一次寫入。Tab 鍵可快速切換欄位。
+    </div>
+    <!-- Table -->
+    <div style="flex:1;overflow:auto;padding:16px">
+      <div id="bulkTableWrap">
+        <div style="text-align:center;padding:40px;color:var(--tx2)">請先選擇排來載入格位清單</div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="bwrap">
   <div class="mscroll"><div id="mc" style="display:inline-flex;flex-direction:column;gap:0"></div></div>
   <div class="spanel">
@@ -668,6 +710,111 @@ function quickFind(){
 
 buildMap();
 populateRowSelect();
+
+/* ── Bulk Edit ── */
+function openBulk(){
+  const modal=document.getElementById('bulkModal');
+  modal.style.display='flex';
+  // Sync day selector to current day
+  document.getElementById('bulkDay').value=today;
+  // Populate row select if empty
+  const sel=document.getElementById('bulkRow');
+  if(sel.options.length<=1){
+    ALL_ROWS.forEach(r=>{
+      if(['Y區','H.I區','G區','F區','D區','C區','E區'].includes(r))return; // skip zones
+      const o=document.createElement('option');
+      o.value=r;o.textContent=r;
+      sel.appendChild(o);
+    });
+  }
+  document.getElementById('bulkTableWrap').innerHTML='<div style="text-align:center;padding:40px;color:var(--tx2)">請先選擇排來載入格位清單</div>';
+}
+
+function closeBulk(){
+  document.getElementById('bulkModal').style.display='none';
+}
+
+function loadBulkTable(){
+  const rowId=document.getElementById('bulkRow').value;
+  const day=document.getElementById('bulkDay').value;
+  if(!rowId)return;
+  const stalls=ROW_STALLS[rowId]||[];
+  const wrap=document.getElementById('bulkTableWrap');
+
+  let html=`<table class="btbl">
+    <thead><tr>
+      <th style="width:80px">格位</th>
+      <th>姓名</th>
+      <th>電話</th>
+      <th>地址</th>
+    </tr></thead><tbody>`;
+
+  stalls.forEach(num=>{
+    const key=sk(rowId,num);
+    const info=(data[key]&&data[key][day])||{};
+    const hasData=!!(info.name||info.phone||info.address);
+    html+=`<tr class="${hasData?'has-data':''}">
+      <td>${rowId} ${num}號</td>
+      <td><input type="text" data-key="${key}" data-field="name" value="${(info.name||'').replace(/"/g,'&quot;')}" placeholder="格主姓名" tabindex="1"></td>
+      <td><input type="text" data-key="${key}" data-field="phone" value="${(info.phone||'').replace(/"/g,'&quot;')}" placeholder="電話" tabindex="1"></td>
+      <td><input type="text" data-key="${key}" data-field="address" value="${(info.address||'').replace(/"/g,'&quot;')}" placeholder="地址" tabindex="1"></td>
+    </tr>`;
+  });
+
+  html+=`</tbody></table>`;
+  wrap.innerHTML=html;
+
+  // Highlight row when any input changes
+  wrap.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      inp.closest('tr').classList.add('has-data');
+    });
+  });
+}
+
+// Reload table when day changes
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('bulkDay').addEventListener('change',loadBulkTable);
+});
+
+function importBulk(){
+  const rowId=document.getElementById('bulkRow').value;
+  const day=document.getElementById('bulkDay').value;
+  if(!rowId){showToast('請先選擇排');return;}
+
+  const inputs=document.querySelectorAll('#bulkTableWrap input');
+  let count=0;
+
+  // Collect all values per key
+  const collected={};
+  inputs.forEach(inp=>{
+    const key=inp.dataset.key;
+    const field=inp.dataset.field;
+    if(!collected[key])collected[key]={};
+    collected[key][field]=inp.value.trim();
+  });
+
+  // Write to data
+  Object.entries(collected).forEach(([key,fields])=>{
+    if(fields.name||fields.phone||fields.address){
+      if(!data[key])data[key]={};
+      data[key][day]={name:fields.name||'',phone:fields.phone||'',address:fields.address||''};
+      count++;
+    } else {
+      // Clear if all empty
+      if(data[key]&&data[key][day]){
+        delete data[key][day];
+        if(!Object.keys(data[key]).length)delete data[key];
+      }
+    }
+  });
+
+  localStorage.setItem('nm7',JSON.stringify(data));
+  refreshAll();
+  updateStats();
+  showToast(`✅ 已匯入 ${count} 筆資料`);
+  closeBulk();
+}
 </script>
 </body>
 </html>
