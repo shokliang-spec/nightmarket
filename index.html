@@ -171,7 +171,41 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     <button class="qfbtn" onclick="quickFind()">前往</button>
   </div>
   <button class="qfbtn" style="background:var(--sur2);border:1px solid var(--bdr);color:var(--tx)" onclick="openBulk()">📋 大量編輯</button>
+  <button class="qfbtn" style="background:#1a7f3c;color:#fff" onclick="openCSV()">📥 CSV 匯入</button>
 </header>
+
+<!-- CSV Import Modal -->
+<div id="csvModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:12px;width:90vw;max-width:800px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px;flex-shrink:0">
+      <div style="font-size:16px;font-weight:700;color:#3ecf6e;flex:1">📥 Google Sheet CSV 匯入</div>
+      <button class="qfbtn" onclick="downloadTemplate()" style="background:#0f62fe;color:#fff">⬇️ 下載範本</button>
+      <button class="qfbtn" onclick="closeCSV()" style="background:transparent;border:1px solid var(--bdr);color:var(--tx2)">✕ 關閉</button>
+    </div>
+    <div style="padding:12px 20px;background:var(--sur2);border-bottom:1px solid var(--bdr);font-size:11px;color:var(--tx2);flex-shrink:0;line-height:1.8">
+      <b style="color:var(--acc)">使用步驟：</b>
+      1. 按「⬇️ 下載範本」取得 CSV 格式範本，上傳到 Google Sheet 編輯&nbsp;&nbsp;
+      2. 在 Google Sheet 點 <b>檔案 → 下載 → CSV</b>&nbsp;&nbsp;
+      3. 用文字編輯器（記事本）開啟 CSV，全選複製&nbsp;&nbsp;
+      4. 貼到下方欄位，按「匯入」
+    </div>
+    <div style="padding:16px 20px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--tx2);white-space:nowrap">匯入模式：</label>
+        <select id="csvMode" class="qfsel" style="font-size:12px">
+          <option value="merge">合併（保留現有，只更新有填的欄位）</option>
+          <option value="overwrite">覆蓋（清空後全部重寫）</option>
+        </select>
+      </div>
+      <textarea id="csvInput" placeholder="在此貼上從 Google Sheet 下載的 CSV 內容..." style="flex:1;min-height:280px;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;padding:12px;color:var(--tx);font-family:'Share Tech Mono',monospace;font-size:11px;resize:none;outline:none;line-height:1.6"></textarea>
+      <div id="csvPreview" style="font-size:11px;color:var(--tx2)"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="qfbtn" onclick="previewCSV()" style="background:var(--sur2);border:1px solid var(--bdr);color:var(--tx)">🔍 預覽</button>
+        <button class="qfbtn" onclick="importCSV()" style="background:#1a7f3c;color:#fff;font-size:14px;padding:8px 20px">✅ 確認匯入</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Bulk Edit Modal -->
 <div id="bulkModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center">
@@ -711,7 +745,131 @@ function quickFind(){
 buildMap();
 populateRowSelect();
 
-/* ── Bulk Edit ── */
+/* ── CSV Import ── */
+const CSV_DAYS = ['thu','fri','sat','sun'];
+const CSV_DAY_NAMES = {thu:'週四',fri:'週五',sat:'週六',sun:'週日'};
+const CSV_HEADERS = [
+  '排名','號碼',
+  '週四姓名','週四電話','週四地址',
+  '週五姓名','週五電話','週五地址',
+  '週六姓名','週六電話','週六地址',
+  '週日姓名','週日電話','週日地址'
+];
+
+function openCSV(){
+  document.getElementById('csvModal').style.display='flex';
+  document.getElementById('csvInput').value='';
+  document.getElementById('csvPreview').innerHTML='';
+}
+function closeCSV(){
+  document.getElementById('csvModal').style.display='none';
+}
+
+function downloadTemplate(){
+  // Build template CSV with all stalls
+  let rows=[CSV_HEADERS.join(',')];
+  // Add sample rows for each row
+  const SAMPLE_ROWS=[
+    ['13排',rng(47)],['十四排',rng(36)],['一排',rng(32)],['二排',rng(32)],
+    ['三排',rng(32)],['四排',rng(32)],['A排',rng(32)],['B排',rng(32)],
+    ['五排',rng(32)],['六排',rng(32)],['七排',rng(32)],['八排',rng(32)],
+    ['九排',rng(32)],['十排',rng(32)],['十一排',rng(32)],['十二排',rng(32)],
+    ['十六排',rng(43)],['十七排',rng(43)],['十八排',rng(45)],['十九排',rng(45)],
+    ['二十排',rng(46)],['二十一排',rng(46)],['二十二排',rng(46)],
+    ['15排',rng(29)],['二十三排',rng(6)],
+    ['37排',rng(5)],['24排',rng(5)],['25排',rng(5)],['26排',rng(5)],
+    ['27排',rng(5)],['28排',rng(5)],['29排',rng(5)],['30排',rng(5)],
+    ['31排',rng(5)],['32排',rng(5)],['33排',rng(5)],['34排',rng(5)],['35排',rng(5)],
+    ['36排',[1,2,3,4,5,6,7]]
+  ];
+  SAMPLE_ROWS.forEach(([rowId,stalls])=>{
+    stalls.forEach(num=>{
+      rows.push(`${rowId},${num},,,,,,,,,,,,`);
+    });
+  });
+  const blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='花園夜市格位範本.csv';
+  a.click();
+}
+
+function parseCSV(text){
+  const lines=text.trim().split(/\r?\n/);
+  if(lines.length<2)return null;
+  // Skip header row
+  const start=lines[0].includes('排名')?1:0;
+  const records=[];
+  for(let i=start;i<lines.length;i++){
+    const cols=lines[i].split(',');
+    if(cols.length<2)continue;
+    const rowId=cols[0].trim();
+    const num=cols[1].trim();
+    if(!rowId||!num)continue;
+    records.push({
+      rowId, num,
+      thu:{name:(cols[2]||'').trim(),phone:(cols[3]||'').trim(),address:(cols[4]||'').trim()},
+      fri:{name:(cols[5]||'').trim(),phone:(cols[6]||'').trim(),address:(cols[7]||'').trim()},
+      sat:{name:(cols[8]||'').trim(),phone:(cols[9]||'').trim(),address:(cols[10]||'').trim()},
+      sun:{name:(cols[11]||'').trim(),phone:(cols[12]||'').trim(),address:(cols[13]||'').trim()},
+    });
+  }
+  return records;
+}
+
+function previewCSV(){
+  const text=document.getElementById('csvInput').value.trim();
+  const prev=document.getElementById('csvPreview');
+  if(!text){prev.innerHTML='<span style="color:#e74c3c">請先貼上 CSV 內容</span>';return;}
+  const records=parseCSV(text);
+  if(!records||!records.length){prev.innerHTML='<span style="color:#e74c3c">無法解析 CSV，請確認格式正確</span>';return;}
+  // Count filled
+  let filled=0;
+  records.forEach(r=>{
+    CSV_DAYS.forEach(d=>{if(r[d].name)filled++;});
+  });
+  prev.innerHTML=`<span style="color:var(--grn)">✅ 解析成功：共 ${records.length} 個格位，${filled} 筆有填資料</span>`;
+}
+
+function importCSV(){
+  const text=document.getElementById('csvInput').value.trim();
+  const mode=document.getElementById('csvMode').value;
+  if(!text){showToast('請先貼上 CSV 內容');return;}
+  const records=parseCSV(text);
+  if(!records||!records.length){showToast('無法解析 CSV');return;}
+
+  if(mode==='overwrite'){
+    // Clear all data first
+    Object.keys(data).forEach(k=>delete data[k]);
+  }
+
+  let count=0;
+  records.forEach(r=>{
+    const key=sk(r.rowId,isNaN(r.num)?r.num:parseInt(r.num));
+    CSV_DAYS.forEach(d=>{
+      const info=r[d];
+      if(info.name||info.phone||info.address){
+        if(!data[key])data[key]={};
+        if(mode==='merge'){
+          // Only update fields that have values
+          if(!data[key][d])data[key][d]={name:'',phone:'',address:''};
+          if(info.name)data[key][d].name=info.name;
+          if(info.phone)data[key][d].phone=info.phone;
+          if(info.address)data[key][d].address=info.address;
+        } else {
+          data[key][d]=info;
+        }
+        count++;
+      }
+    });
+  });
+
+  localStorage.setItem('nm7',JSON.stringify(data));
+  refreshAll();
+  updateStats();
+  showToast(`✅ 已匯入 ${count} 筆資料`);
+  closeCSV();
+}
 function openBulk(){
   const modal=document.getElementById('bulkModal');
   modal.style.display='flex';
