@@ -719,29 +719,30 @@ function renderPanel(key,rowId,num){
 function fk(key){const[r,n]=pk(key);return n==='z'?r:`${r} ${n}號`}
 
 function save(key){
-  // Get values from either mobile sheet or desktop panel
-  const fn=document.getElementById('fn')||document.getElementById('mfn');
-  const fp=document.getElementById('fp')||document.getElementById('mfp');
-  const fa=document.getElementById('fa')||document.getElementById('mfa');
-  const name=(fn?fn.value:'').trim();
-  const phone=(fp?fp.value:'').trim();
-  const address=(fa?fa.value:'').trim();
+  var fn=document.getElementById('fn')||document.getElementById('mfn');
+  var fp=document.getElementById('fp')||document.getElementById('mfp');
+  var fa=document.getElementById('fa')||document.getElementById('mfa');
+  var name=(fn?fn.value:'').trim();
+  var phone=(fp?fp.value:'').trim();
+  var address=(fa?fa.value:'').trim();
   if(!data[key])data[key]={};
-  data[key][today]={name,phone,address};
+  data[key][today]={name:name,phone:phone,address:address};
+  saveToCloud(key, today, {name:name,phone:phone,address:address});
   refreshAll();updateStats();
-  const[r,n]=pk(key);
-  if(isMobile()) openMobileSheet(key,r,n);
-  else renderPanel(key,r,n);
+  var parts=pk(key);
+  if(isMobile()) openMobileSheet(key,parts[0],parts[1]);
+  else renderPanel(key,parts[0],parts[1]);
   showToast('✅ 已儲存');
 }
 
 function del(key){
   if(!confirm('確定清除？'))return;
   if(data[key]){delete data[key][today];if(!Object.keys(data[key]).length)delete data[key];}
+  saveToCloud(key, today, {name:'',phone:'',address:''});
   refreshAll();updateStats();
-  const[r,n]=pk(key);
-  if(isMobile()) openMobileSheet(key,r,n);
-  else renderPanel(key,r,n);
+  var parts=pk(key);
+  if(isMobile()) openMobileSheet(key,parts[0],parts[1]);
+  else renderPanel(key,parts[0],parts[1]);
   showToast('🗑 已清除');
 }
 
@@ -1005,9 +1006,20 @@ function importCSV(){
     });
   });
 
-  refreshAll();
-  updateStats();
-  showToast(`✅ 已匯入 ${count} 筆資料`);
+  // Sync to cloud
+  var recs=[];
+  Object.keys(data).forEach(function(key){
+    DAYS.forEach(function(d){
+      var info=data[key]&&data[key][d];
+      if(info) recs.push({stall_key:key,day:d,name:info.name||'',phone:info.phone||'',address:info.address||''});
+    });
+  });
+  showToast('☁️ 同步雲端中...');
+  bulkSaveToCloud(recs, function(ok){
+    refreshAll();
+    updateStats();
+    showToast(ok ? '✅ 已匯入並同步 '+count+' 筆' : '✅ 已匯入 '+count+' 筆（雲端同步失敗）');
+  });
   closeCSV();
 }
 function openBulk(){
@@ -1112,6 +1124,73 @@ function importBulk(){
   showToast(`✅ 已儲存 ${count} 筆資料`);
   closeBulk();
 }
+
+/* ── Supabase Cloud Sync ─────────────────────────────── */
+const SUPA_URL = "https://evzqyplqbdrzikkvjtvh.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2enF5cGxxYmRyemlra3ZqdHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzODQ2MDAsImV4cCI6MjA5NDk2MDYwMH0.6GBy9iaanu3-ghBaJGdcFRQfOuMaDtP2RouwUIgMEek";
+
+function supaFetch(path, method, body) {
+  var opts = {
+    method: method || 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(SUPA_URL + '/rest/v1' + path, opts);
+}
+
+function loadFromCloud() {
+  supaFetch('/stalls?select=*')
+    .then(function(res) { return res.json(); })
+    .then(function(rows) {
+      Object.keys(data).forEach(function(k) { delete data[k]; });
+      rows.forEach(function(r) {
+        if (!data[r.stall_key]) data[r.stall_key] = {};
+        data[r.stall_key][r.day] = { name: r.name||'', phone: r.phone||'', address: r.address||'' };
+      });
+      refreshAll();
+      updateStats();
+    })
+    .catch(function(e) { console.error('Cloud load error:', e); });
+}
+
+function saveToCloud(key, day, info) {
+  if (info.name || info.phone || info.address) {
+    supaFetch('/stalls', 'POST', [{ stall_key: key, day: day, name: info.name||'', phone: info.phone||'', address: info.address||'' }])
+      .catch(function(e) { console.error('Cloud save error:', e); });
+  } else {
+    supaFetch('/stalls?stall_key=eq.' + encodeURIComponent(key) + '&day=eq.' + day, 'DELETE')
+      .catch(function(e) { console.error('Cloud delete error:', e); });
+  }
+}
+
+function bulkSaveToCloud(records, callback) {
+  var toSave = records.filter(function(r) { return r.name || r.phone || r.address; });
+  if (!toSave.length) { if(callback) callback(true); return; }
+  
+  // Save in batches of 100
+  var batches = [];
+  for (var i = 0; i < toSave.length; i += 100) {
+    batches.push(toSave.slice(i, i + 100));
+  }
+  
+  var idx = 0;
+  function nextBatch() {
+    if (idx >= batches.length) { if(callback) callback(true); return; }
+    supaFetch('/stalls', 'POST', batches[idx++])
+      .then(function() { nextBatch(); })
+      .catch(function(e) { console.error('Bulk save error:', e); if(callback) callback(false); });
+  }
+  nextBatch();
+}
+
+// Load from cloud on start
+loadFromCloud();
+
 </script>
 </body>
 </html>
