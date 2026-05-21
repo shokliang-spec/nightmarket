@@ -75,26 +75,30 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
   .qfsel{font-size:13px;padding:7px 10px}
   .qfbtn{padding:7px 14px;font-size:13px}
 
-  /* Hide desktop side panel */
+  /* Show side panel on mobile (scrollable below map) */
   .spanel{display:none}
 
   /* Show mobile bottom sheet */
   .mobile-sheet{display:flex}
 
-  /* Main body takes full width */
-  .bwrap{flex-direction:column}
+  /* Main body takes full width, map scrollable */
+  .bwrap{flex-direction:column;overflow:hidden}
+  .mscroll{flex:1;overflow:auto;padding:10px;min-height:0;-webkit-overflow-scrolling:touch}
 
   /* Bigger stall cells for touch */
-  .cell-num{width:28px!important;height:32px!important;font-size:9px!important}
-  .cell-blank{width:20px!important;height:32px!important}
-  .hcell-num{height:24px!important;font-size:8px!important}
-  .hcell-blank{height:14px!important}
+  .cell-num{width:32px!important;height:36px!important;font-size:9px!important}
+  .cell-blank{width:24px!important;height:36px!important}
+  .hcell-num{height:28px!important;font-size:8px!important}
+  .hcell-blank{height:16px!important}
 
   /* Stats smaller */
   .stats{font-size:10px}
 
-  /* Hide bulk buttons on mobile, show as icons */
+  /* Hide bulk buttons text on mobile */
   .bulk-btn-text{display:none}
+
+  /* Ensure map canvas shows */
+  #mc{display:inline-flex !important;flex-direction:column !important}
 }
 
 @media (min-width: 769px) {
@@ -339,74 +343,6 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
   </div>
 </div>
 <div class="toast" id="toast"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const SUPA_URL = "https://evzqyplqbdrzikkvjtvh.supabase.co";
-const SUPA_KEY = "sb_publishable_C27blQ2c7cJ4zlAqWcTIvw_2Ndb0swj";
-const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
-
-// ── Supabase data layer ──────────────────────────────────────────────────────
-// data object is kept in memory as cache; Supabase is source of truth
-
-async function loadFromSupabase() {
-  try {
-    const { data: rows, error } = await supa.from('stalls').select('*');
-    if (error) throw error;
-    // Rebuild data object from rows
-    Object.keys(data).forEach(k => delete data[k]);
-    rows.forEach(r => {
-      if (!data[r.stall_key]) data[r.stall_key] = {};
-      data[r.stall_key][r.day] = { name: r.name||'', phone: r.phone||'', address: r.address||'' };
-    });
-    refreshAll();
-    updateStats();
-    console.log(`Loaded ${rows.length} records from Supabase`);
-  } catch(e) {
-    console.error('Load error:', e);
-    showToast('⚠️ 載入資料失敗，使用本地快取');
-  }
-}
-
-async function saveToSupabase(key, day, info) {
-  try {
-    if (info.name || info.phone || info.address) {
-      const { error } = await supa.from('stalls').upsert({
-        stall_key: key, day: day,
-        name: info.name||'', phone: info.phone||'', address: info.address||''
-      }, { onConflict: 'stall_key,day' });
-      if (error) throw error;
-    } else {
-      const { error } = await supa.from('stalls').delete()
-        .eq('stall_key', key).eq('day', day);
-      if (error) throw error;
-    }
-  } catch(e) {
-    console.error('Save error:', e);
-    showToast('⚠️ 儲存失敗');
-  }
-}
-
-async function bulkSaveToSupabase(records) {
-  // records: array of {stall_key, day, name, phone, address}
-  try {
-    // Filter out empty records for delete
-    const toUpsert = records.filter(r => r.name || r.phone || r.address);
-    const toDelete = records.filter(r => !r.name && !r.phone && !r.address);
-
-    if (toUpsert.length > 0) {
-      const { error } = await supa.from('stalls').upsert(toUpsert, { onConflict: 'stall_key,day' });
-      if (error) throw error;
-    }
-    for (const r of toDelete) {
-      await supa.from('stalls').delete().eq('stall_key', r.stall_key).eq('day', r.day);
-    }
-    return true;
-  } catch(e) {
-    console.error('Bulk save error:', e);
-    return false;
-  }
-}
-</script>
 <script>
 // Cell dimensions
 const BW=22, NW=28, CH=24; // blank width, num width, cell height
@@ -782,14 +718,16 @@ function renderPanel(key,rowId,num){
 
 function fk(key){const[r,n]=pk(key);return n==='z'?r:`${r} ${n}號`}
 
-async function save(key){
-  const name=document.getElementById('fn').value.trim();
-  const phone=document.getElementById('fp').value.trim();
-  const address=document.getElementById('fa').value.trim();
+function save(key){
+  // Get values from either mobile sheet or desktop panel
+  const fn=document.getElementById('fn')||document.getElementById('mfn');
+  const fp=document.getElementById('fp')||document.getElementById('mfp');
+  const fa=document.getElementById('fa')||document.getElementById('mfa');
+  const name=(fn?fn.value:'').trim();
+  const phone=(fp?fp.value:'').trim();
+  const address=(fa?fa.value:'').trim();
   if(!data[key])data[key]={};
   data[key][today]={name,phone,address};
-  // Save to Supabase
-  await saveToSupabase(key, today, {name,phone,address});
   refreshAll();updateStats();
   const[r,n]=pk(key);
   if(isMobile()) openMobileSheet(key,r,n);
@@ -797,10 +735,9 @@ async function save(key){
   showToast('✅ 已儲存');
 }
 
-async function del(key){
+function del(key){
   if(!confirm('確定清除？'))return;
   if(data[key]){delete data[key][today];if(!Object.keys(data[key]).length)delete data[key];}
-  await saveToSupabase(key, today, {name:'',phone:'',address:''});
   refreshAll();updateStats();
   const[r,n]=pk(key);
   if(isMobile()) openMobileSheet(key,r,n);
@@ -916,7 +853,7 @@ function quickFind(){
 
 buildMap();
 populateRowSelect();
-loadFromSupabase();
+// loadFromSupabase(); // Supabase disabled
 
 function isMobile(){return window.innerWidth<=768}
 
@@ -947,27 +884,7 @@ function closeMobileSheet(){
   document.getElementById('mobileSheet').classList.remove('open');
 }
 
-// Override save/del to also update mobile sheet fields
-const _origSave=save;
-window.save=function(key){
-  // Check if we're on mobile and use mobile inputs if available
-  const mfn=document.getElementById('mfn');
-  const dfn=document.getElementById('fn');
-  if(mfn&&isMobile()){
-    const name=mfn.value.trim();
-    const phone=(document.getElementById('mfp')||{}).value||'';
-    const address=(document.getElementById('mfa')||{}).value||'';
-    if(!data[key])data[key]={};
-    data[key][today]={name,phone:phone.trim(),address:address.trim()};
-    localStorage.setItem('nm7',JSON.stringify(data));
-    refreshAll();updateStats();
-    const[r,n]=pk(key);
-    openMobileSheet(key,r,n);
-    showToast('✅ 已儲存');
-    return;
-  }
-  _origSave(key);
-};
+
 
 /* ── CSV Import ── */
 const CSV_DAYS = ['thu','fri','sat','sun'];
@@ -1088,19 +1005,9 @@ function importCSV(){
     });
   });
 
-  // Bulk save to Supabase
-  const records = [];
-  Object.entries(data).forEach(([key, days]) => {
-    DAYS.forEach(d => {
-      const info = days[d];
-      if (info) records.push({ stall_key: key, day: d, name: info.name||'', phone: info.phone||'', address: info.address||'' });
-    });
-  });
-  showToast('☁️ 上傳至雲端中...');
-  const ok = await bulkSaveToSupabase(records);
   refreshAll();
   updateStats();
-  showToast(ok ? `✅ 已匯入並同步 ${count} 筆資料` : `✅ 已匯入 ${count} 筆（同步失敗）`);
+  showToast(`✅ 已匯入 ${count} 筆資料`);
   closeCSV();
 }
 function openBulk(){
@@ -1200,14 +1107,6 @@ function importBulk(){
     }
   });
 
-  // Save to Supabase
-  const recs = [];
-  Object.entries(collected).forEach(([key,fields]) => {
-    if(fields.name||fields.phone||fields.address){
-      recs.push({stall_key:key,day,name:fields.name||'',phone:fields.phone||'',address:fields.address||''});
-    }
-  });
-  if(recs.length) await bulkSaveToSupabase(recs);
   refreshAll();
   updateStats();
   showToast(`✅ 已儲存 ${count} 筆資料`);
