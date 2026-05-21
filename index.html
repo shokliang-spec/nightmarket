@@ -339,6 +339,74 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPA_URL = "https://evzqyplqbdrzikkvjtvh.supabase.co";
+const SUPA_KEY = "sb_publishable_C27blQ2c7cJ4zlAqWcTIvw_2Ndb0swj";
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── Supabase data layer ──────────────────────────────────────────────────────
+// data object is kept in memory as cache; Supabase is source of truth
+
+async function loadFromSupabase() {
+  try {
+    const { data: rows, error } = await supa.from('stalls').select('*');
+    if (error) throw error;
+    // Rebuild data object from rows
+    Object.keys(data).forEach(k => delete data[k]);
+    rows.forEach(r => {
+      if (!data[r.stall_key]) data[r.stall_key] = {};
+      data[r.stall_key][r.day] = { name: r.name||'', phone: r.phone||'', address: r.address||'' };
+    });
+    refreshAll();
+    updateStats();
+    console.log(`Loaded ${rows.length} records from Supabase`);
+  } catch(e) {
+    console.error('Load error:', e);
+    showToast('⚠️ 載入資料失敗，使用本地快取');
+  }
+}
+
+async function saveToSupabase(key, day, info) {
+  try {
+    if (info.name || info.phone || info.address) {
+      const { error } = await supa.from('stalls').upsert({
+        stall_key: key, day: day,
+        name: info.name||'', phone: info.phone||'', address: info.address||''
+      }, { onConflict: 'stall_key,day' });
+      if (error) throw error;
+    } else {
+      const { error } = await supa.from('stalls').delete()
+        .eq('stall_key', key).eq('day', day);
+      if (error) throw error;
+    }
+  } catch(e) {
+    console.error('Save error:', e);
+    showToast('⚠️ 儲存失敗');
+  }
+}
+
+async function bulkSaveToSupabase(records) {
+  // records: array of {stall_key, day, name, phone, address}
+  try {
+    // Filter out empty records for delete
+    const toUpsert = records.filter(r => r.name || r.phone || r.address);
+    const toDelete = records.filter(r => !r.name && !r.phone && !r.address);
+
+    if (toUpsert.length > 0) {
+      const { error } = await supa.from('stalls').upsert(toUpsert, { onConflict: 'stall_key,day' });
+      if (error) throw error;
+    }
+    for (const r of toDelete) {
+      await supa.from('stalls').delete().eq('stall_key', r.stall_key).eq('day', r.day);
+    }
+    return true;
+  } catch(e) {
+    console.error('Bulk save error:', e);
+    return false;
+  }
+}
+</script>
 <script>
 // Cell dimensions
 const BW=22, NW=28, CH=24; // blank width, num width, cell height
@@ -714,24 +782,29 @@ function renderPanel(key,rowId,num){
 
 function fk(key){const[r,n]=pk(key);return n==='z'?r:`${r} ${n}號`}
 
-function save(key){
+async function save(key){
   const name=document.getElementById('fn').value.trim();
   const phone=document.getElementById('fp').value.trim();
   const address=document.getElementById('fa').value.trim();
   if(!data[key])data[key]={};
   data[key][today]={name,phone,address};
-  localStorage.setItem('nm7',JSON.stringify(data));
+  // Save to Supabase
+  await saveToSupabase(key, today, {name,phone,address});
   refreshAll();updateStats();
-  const[r,n]=pk(key);renderPanel(key,r,n);
+  const[r,n]=pk(key);
+  if(isMobile()) openMobileSheet(key,r,n);
+  else renderPanel(key,r,n);
   showToast('✅ 已儲存');
 }
 
-function del(key){
+async function del(key){
   if(!confirm('確定清除？'))return;
   if(data[key]){delete data[key][today];if(!Object.keys(data[key]).length)delete data[key];}
-  localStorage.setItem('nm7',JSON.stringify(data));
+  await saveToSupabase(key, today, {name:'',phone:'',address:''});
   refreshAll();updateStats();
-  const[r,n]=pk(key);renderPanel(key,r,n);
+  const[r,n]=pk(key);
+  if(isMobile()) openMobileSheet(key,r,n);
+  else renderPanel(key,r,n);
   showToast('🗑 已清除');
 }
 
@@ -843,6 +916,7 @@ function quickFind(){
 
 buildMap();
 populateRowSelect();
+loadFromSupabase();
 
 function isMobile(){return window.innerWidth<=768}
 
@@ -1014,10 +1088,19 @@ function importCSV(){
     });
   });
 
-  localStorage.setItem('nm7',JSON.stringify(data));
+  // Bulk save to Supabase
+  const records = [];
+  Object.entries(data).forEach(([key, days]) => {
+    DAYS.forEach(d => {
+      const info = days[d];
+      if (info) records.push({ stall_key: key, day: d, name: info.name||'', phone: info.phone||'', address: info.address||'' });
+    });
+  });
+  showToast('☁️ 上傳至雲端中...');
+  const ok = await bulkSaveToSupabase(records);
   refreshAll();
   updateStats();
-  showToast(`✅ 已匯入 ${count} 筆資料`);
+  showToast(ok ? `✅ 已匯入並同步 ${count} 筆資料` : `✅ 已匯入 ${count} 筆（同步失敗）`);
   closeCSV();
 }
 function openBulk(){
@@ -1117,10 +1200,17 @@ function importBulk(){
     }
   });
 
-  localStorage.setItem('nm7',JSON.stringify(data));
+  // Save to Supabase
+  const recs = [];
+  Object.entries(collected).forEach(([key,fields]) => {
+    if(fields.name||fields.phone||fields.address){
+      recs.push({stall_key:key,day,name:fields.name||'',phone:fields.phone||'',address:fields.address||''});
+    }
+  });
+  if(recs.length) await bulkSaveToSupabase(recs);
   refreshAll();
   updateStats();
-  showToast(`✅ 已匯入 ${count} 筆資料`);
+  showToast(`✅ 已儲存 ${count} 筆資料`);
   closeBulk();
 }
 </script>
