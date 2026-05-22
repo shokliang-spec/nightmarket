@@ -605,9 +605,9 @@ function buildMap(){
   zonesWrap.style.cssText=`display:flex;flex-direction:row;justify-content:flex-end;width:${row15W}px`;
   const zonesRow=frow(G);
   zonesRow.style.alignItems='flex-start';
-  zonesRow.appendChild(makeZone('H.I區(八格)'),zw,zh));
-  zonesRow.appendChild(makeZone('G區(八格)'),zw,zh));
-  zonesRow.appendChild(makeZone('F區(八格)'),zw,zh));
+  zonesRow.appendChild(makeZone('H.I區(八格)',zw,zh));
+  zonesRow.appendChild(makeZone('G區(八格)',zw,zh));
+  zonesRow.appendChild(makeZone('F區(八格)',zw,zh));
   zonesRow.appendChild(hsp(A));
   zonesRow.appendChild(vcol('二十三排',rng(6)));
   zonesWrap.appendChild(zonesRow);
@@ -667,9 +667,9 @@ function buildMap(){
   b37wrap.style.alignItems='flex-start';
   b37wrap.appendChild(vcol('37排',rng(5)));
   const dce=frow(G);
-  dce.appendChild(makeZone('D區(七格)'),CW*2,CH*4));
-  dce.appendChild(makeZone('C區(七格)'),CW*2,CH*4));
-  dce.appendChild(makeZone('E區(七格)'),CW*2,CH*4));
+  dce.appendChild(makeZone('D區(七格)',CW*2,CH*4));
+  dce.appendChild(makeZone('C區(七格)',CW*2,CH*4));
+  dce.appendChild(makeZone('E區(七格)',CW*2,CH*4));
   b37wrap.appendChild(dce);
   leftBotRow.appendChild(b37wrap);
   leftBotRow.appendChild(vpair('24排','25排',5));
