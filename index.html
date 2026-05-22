@@ -694,7 +694,11 @@ function buildMap(){
 
 function updateStats(){
   let t=0,f=0;
-  document.querySelectorAll('.cell').forEach(e=>{t++;if(gi(e.dataset.key)?.name)f++;});
+  document.querySelectorAll('.cell,.hcell,.zone').forEach(e=>{
+    if(!e.dataset.key)return;
+    t++;
+    if(gi(e.dataset.key)?.name)f++;
+  });
   document.getElementById('fc').textContent=f;
   document.getElementById('ec').textContent=t-f;
 }
