@@ -420,8 +420,19 @@ function makeZone(rowId,w,h){
 
 function refreshOne(e,key){
   const info=gi(key);
-  e.classList.toggle('has',!!(info&&info.name));
-  e.classList.toggle('sel',key===selKey);
+  const has=!!(info&&info.name);
+  const sel=key===selKey;
+  e.classList.toggle('has',has);
+  e.classList.toggle('sel',sel);
+  e.querySelectorAll('[class*="cell-num"],[class*="cell-blank"],[class*="hcell-num"],[class*="hcell-blank"]').forEach(function(c){
+    if(sel){
+      c.style.background='var(--acc)';c.style.borderColor='var(--acc)';c.style.color='#000';
+    } else if(has){
+      c.style.background='var(--grn2)';c.style.borderColor='var(--grn3)';c.style.color='var(--grn)';
+    } else {
+      c.style.background='var(--sur2)';c.style.borderColor='';c.style.color='var(--tx2)';
+    }
+  });
 }
 function refreshAll(){
   document.querySelectorAll('.cell,.hcell,.zone').forEach(e=>{
