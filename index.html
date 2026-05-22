@@ -1143,19 +1143,26 @@ function supaFetch(path, method, body) {
   return fetch(SUPA_URL + '/rest/v1' + path, opts);
 }
 
-function loadFromCloud() {
-  supaFetch('/stalls?select=*&limit=10000')
-    .then(function(res) { return res.json(); })
-    .then(function(rows) {
-      Object.keys(data).forEach(function(k) { delete data[k]; });
-      rows.forEach(function(r) {
-        if (!data[r.stall_key]) data[r.stall_key] = {};
-        data[r.stall_key][r.day] = { name: r.name||'', phone: r.phone||'', address: r.address||'' };
-      });
-      refreshAll();
-      updateStats();
-    })
-    .catch(function(e) { console.error('Cloud load error:', e); });
+async function loadFromCloud() {
+  try {
+    var all = [];
+    var page = 0;
+    var size = 1000;
+    while(true) {
+      var rows = await supaFetch('/stalls?select=*&limit='+size+'&offset='+(page*size)+'&order=id.asc').then(function(r){return r.json();});
+      if(!rows || !rows.length) break;
+      all = all.concat(rows);
+      page++;
+      if(rows.length < size) break;
+    }
+    Object.keys(data).forEach(function(k) { delete data[k]; });
+    all.forEach(function(r) {
+      if (!data[r.stall_key]) data[r.stall_key] = {};
+      data[r.stall_key][r.day] = { name: r.name||'', phone: r.phone||'', address: r.address||'' };
+    });
+    refreshAll();
+    updateStats();
+  } catch(e) { console.error('Cloud load error:', e); }
 }
 
 function saveToCloud(key, day, info) {
