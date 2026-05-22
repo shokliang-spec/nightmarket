@@ -693,11 +693,16 @@ function buildMap(){
 }
 
 function updateStats(){
+  // 從所有格位定義計算總數
   let t=0,f=0;
-  document.querySelectorAll('.cell,.hcell,.zone').forEach(e=>{
-    if(!e.dataset.key)return;
-    t++;
-    if(gi(e.dataset.key)?.name)f++;
+  ALL_ROWS.forEach(function(r){
+    var nums=STALLS[r];
+    if(!nums)return;
+    nums.forEach(function(n){
+      var key=sk(r,n);
+      t++;
+      if(data[key]&&data[key][today]&&data[key][today].name)f++;
+    });
   });
   document.getElementById('fc').textContent=f;
   document.getElementById('ec').textContent=t-f;
