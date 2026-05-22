@@ -221,9 +221,34 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 [data-key="十八排|45"]{visibility:hidden;pointer-events:none;}
 /* 隱藏35排5號 */
 [data-key="35排|5"]{visibility:hidden;pointer-events:none;}
+
+/* 登入畫面 */
+#loginScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#0d0d0d;display:flex;align-items:center;justify-content:center;z-index:9999;}
+#loginBox{background:var(--sur1);border:1px solid var(--bdr);border-radius:12px;padding:40px;width:320px;text-align:center;}
+#loginBox h2{color:var(--acc);margin-bottom:8px;font-size:1.4em;}
+#loginBox p{color:var(--tx2);margin-bottom:24px;font-size:0.9em;}
+#loginPwd{width:100%;padding:10px 14px;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;color:var(--tx);font-size:1em;margin-bottom:16px;box-sizing:border-box;}
+#loginPwd:focus{outline:none;border-color:var(--acc);}
+#loginBtn{width:100%;padding:12px;background:var(--acc);color:#000;border:none;border-radius:8px;font-size:1em;font-weight:700;cursor:pointer;}
+#loginBtn:hover{opacity:0.9;}
+#loginErr{color:#ff4d4d;font-size:0.85em;margin-top:8px;display:none;}
+#logoutBtn{background:var(--sur2);border:1px solid var(--bdr);color:var(--tx2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.85em;}
+#logoutBtn:hover{border-color:var(--acc);color:var(--acc);}
+
 </style>
 </head>
 <body>
+
+<div id="loginScreen">
+  <div id="loginBox">
+    <h2>🏮 花園夜市</h2>
+    <p>格位管理系統</p>
+    <input type="password" id="loginPwd" placeholder="請輸入密碼" onkeydown="if(event.key==='Enter')doLogin()">
+    <button id="loginBtn" onclick="doLogin()">登入</button>
+    <div id="loginErr">密碼錯誤，請再試一次</div>
+  </div>
+</div>
+
 <header class="hd" id="mainHd">
   <!-- Row 1: Logo + Day tabs + Stats -->
   <div class="hd-row1">
@@ -1232,6 +1257,31 @@ document.querySelectorAll('[data-key="35排|4"]').forEach(function(e){
     e.title='35排 3.5號';
   }
 });
+
+
+// 登入功能
+const PWD = '0978';
+function doLogin(){
+  var pwd = document.getElementById('loginPwd').value;
+  if(pwd === PWD){
+    sessionStorage.setItem('loggedIn','1');
+    document.getElementById('loginScreen').style.display='none';
+  } else {
+    document.getElementById('loginErr').style.display='block';
+    document.getElementById('loginPwd').value='';
+  }
+}
+function checkLogin(){
+  if(sessionStorage.getItem('loggedIn')!=='1'){
+    document.getElementById('loginScreen').style.display='flex';
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem('loggedIn');
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginPwd').value='';
+}
+checkLogin();
 
 </script>
 </body>
