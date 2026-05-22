@@ -693,10 +693,9 @@ function buildMap(){
 }
 
 function updateStats(){
-  // 從所有格位定義計算總數
   let t=0,f=0;
   ALL_ROWS.forEach(function(r){
-    var nums=STALLS[r];
+    var nums=ROW_STALLS[r];
     if(!nums)return;
     nums.forEach(function(n){
       var key=sk(r,n);
