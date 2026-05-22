@@ -1144,7 +1144,7 @@ function supaFetch(path, method, body) {
 }
 
 function loadFromCloud() {
-  supaFetch('/stalls?select=*')
+  supaFetch('/stalls?select=*&limit=10000')
     .then(function(res) { return res.json(); })
     .then(function(rows) {
       Object.keys(data).forEach(function(k) { delete data[k]; });
