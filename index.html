@@ -1182,7 +1182,11 @@ async function loadFromCloud() {
 
 function saveToCloud(key, day, info) {
   if (info.name || info.phone || info.address) {
-    supaFetch('/stalls', 'POST', [{ stall_key: key, day: day, name: info.name||'', phone: info.phone||'', address: info.address||'' }])
+    // 先刪除再新增，避免衝突
+    supaFetch('/stalls?stall_key=eq.' + encodeURIComponent(key) + '&day=eq.' + day, 'DELETE')
+      .then(function() {
+        return supaFetch('/stalls', 'POST', [{ stall_key: key, day: day, name: info.name||'', phone: info.phone||'', address: info.address||'' }]);
+      })
       .catch(function(e) { console.error('Cloud save error:', e); });
   } else {
     supaFetch('/stalls?stall_key=eq.' + encodeURIComponent(key) + '&day=eq.' + day, 'DELETE')
