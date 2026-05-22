@@ -605,9 +605,9 @@ function buildMap(){
   zonesWrap.style.cssText=`display:flex;flex-direction:row;justify-content:flex-end;width:${row15W}px`;
   const zonesRow=frow(G);
   zonesRow.style.alignItems='flex-start';
-  zonesRow.appendChild(makeZone('H.I區'),zw,zh));
-  zonesRow.appendChild(makeZone('G區'),zw,zh));
-  zonesRow.appendChild(makeZone('F區'),zw,zh));
+  zonesRow.appendChild(makeZone('H.I區(八格)'),zw,zh));
+  zonesRow.appendChild(makeZone('G區(八格)'),zw,zh));
+  zonesRow.appendChild(makeZone('F區(八格)'),zw,zh));
   zonesRow.appendChild(hsp(A));
   zonesRow.appendChild(vcol('二十三排',rng(6)));
   zonesWrap.appendChild(zonesRow);
@@ -667,9 +667,9 @@ function buildMap(){
   b37wrap.style.alignItems='flex-start';
   b37wrap.appendChild(vcol('37排',rng(5)));
   const dce=frow(G);
-  dce.appendChild(makeZone('D區'),CW*2,CH*4));
-  dce.appendChild(makeZone('C區'),CW*2,CH*4));
-  dce.appendChild(makeZone('E區'),CW*2,CH*4));
+  dce.appendChild(makeZone('D區(七格)'),CW*2,CH*4));
+  dce.appendChild(makeZone('C區(七格)'),CW*2,CH*4));
+  dce.appendChild(makeZone('E區(七格)'),CW*2,CH*4));
   b37wrap.appendChild(dce);
   leftBotRow.appendChild(b37wrap);
   leftBotRow.appendChild(vpair('24排','25排',5));
@@ -824,7 +824,7 @@ const ROW_STALLS = {
   '二十排':rng(46),'二十一排':rng(46),'二十二排':rng(46),
   '15排':rng(29),'二十三排':rng(6),
   '37排':rng(5),'Y區':['z'],'D區':['z'],'C區':['z'],'E區':['z'],
-  'H.I區':['z'],'G區':['z'],'F區':['z'],
+  'H.I區(八格)':['z'],'G區(八格)':['z'],'F區(八格)':['z'],
   '24排':rng(5),'25排':rng(5),'26排':rng(5),'27排':rng(5),
   '28排':rng(5),'29排':rng(5),'30排':rng(5),'31排':rng(5),
   '32排':rng(5),'33排':rng(5),'34排':rng(5),'35排':rng(5),
@@ -849,7 +849,7 @@ const ALL_ROWS = [
   '五排','六排','七排','八排','九排','十排','十一排','十二排',
   '十六排','十七排','十八排','十九排','二十排','二十一排','二十二排',
   '15排','二十三排',
-  '37排','Y區','D區','C區','E區','H.I區','G區','F區',
+  '37排','Y區','D區(七格)','C區(七格)','E區(七格)','H.I區(八格)','G區(八格)','F區(八格)',
   '24排','25排','26排','27排','28排','29排',
   '30排','31排','32排','33排','34排','35排','36排'
 ];
@@ -1054,7 +1054,7 @@ function openBulk(){
   const sel=document.getElementById('bulkRow');
   if(sel.options.length<=1){
     ALL_ROWS.forEach(r=>{
-      if(['Y區','H.I區','G區','F區','D區','C區','E區'].includes(r))return; // skip zones
+      if(['Y區','H.I區(八格)','G區(八格)','F區(八格)','D區(七格)','C區(七格)','E區(七格)'].includes(r))return; // skip zones
       const o=document.createElement('option');
       o.value=r;o.textContent=r;
       sel.appendChild(o);
