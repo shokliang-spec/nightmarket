@@ -24,8 +24,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 .dtab{padding:5px 11px;border-radius:6px;border:1px solid var(--bdr);background:transparent;color:var(--tx2);font-family:'Noto Sans TC',sans-serif;font-size:12px;cursor:pointer;transition:all .15s}
 .dtab:hover{border-color:var(--acc);color:var(--acc)}
 .dtab.active{background:var(--acc);border-color:var(--acc);color:#000;font-weight:700}
-.swrap{position:relative;flex:1;min-width:150px;max-width:260px}
-.sinput{width:100%;background:var(--sur2);border:1px solid var(--bdr);border-radius:7px;padding:7px 11px 7px 30px;color:var(--tx);font-family:'Noto Sans TC',sans-serif;font-size:12px;outline:none;transition:border-color .2s}
+.swrap{position:relative;display:flex;align-items:center;gap:6px;flex:1;min-width:150px;max-width:320px}
+.sinput{flex:1;background:var(--sur2);border:1px solid var(--bdr);border-radius:7px;padding:7px 11px 7px 30px;color:var(--tx);font-family:'Noto Sans TC',sans-serif;font-size:12px;outline:none;transition:border-color .2s}
 .sinput:focus{border-color:var(--acc)}
 .sico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--tx2);font-size:13px}
 .sres{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;max-height:260px;overflow-y:auto;z-index:200;display:none}
@@ -935,8 +935,16 @@ function doSearch(){
     resList.innerHTML='<div style="color:var(--tx2);padding:8px">找不到格主</div>';
   } else {
     resList.innerHTML = matches.map(([name,info])=>{
-      const pills = info.stalls.map(s=>`<span onclick="document.getElementById('searchResults').style.display='none';setDay('${s.day}');selectStall('${s.key}');" style="cursor:pointer;background:var(--sur2);border:1px solid var(--acc);border-radius:6px;padding:4px 10px;font-size:13px;display:inline-block;margin:4px;color:var(--acc)">${DL2[s.day]} ${fk(s.key)}</span>`).join('');
-      return `<div style="padding:10px 0;border-bottom:1px solid var(--bdr)"><div style="font-weight:700;font-size:15px;margin-bottom:6px">${name} <span style="color:var(--tx2);font-size:12px">${info.phone||''}</span></div><div style="flex-wrap:wrap;display:flex">${pills}</div></div>`;
+      const dayOrder=['thu','fri','sat','sun'];
+      const sorted=info.stalls.sort((a,b)=>dayOrder.indexOf(a.day)-dayOrder.indexOf(b.day));
+      // 依排號分組
+      const byStall={};
+      sorted.forEach(s=>{const k=fk(s.key);if(!byStall[k])byStall[k]=[];byStall[k].push(s.day);});
+      const stallRows=Object.entries(byStall).map(([stallName,days])=>{
+        const dayPills=days.map(d=>`<span onclick="document.getElementById('searchResults').style.display='none';setDay('${d}');selectStall('${info.stalls.find(s=>fk(s.key)===stallName&&s.day==='${d}')?.key||info.stalls[0].key}');" style="cursor:pointer;background:var(--acc);border-radius:4px;padding:2px 8px;font-size:12px;color:#000;margin:2px;display:inline-block">${DL2[d]}</span>`).join('');
+        return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--sur2)"><span style="font-size:13px;min-width:90px;color:var(--tx)">${stallName}</span><div>${dayPills}</div></div>`;
+      }).join('');
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--bdr)"><div style="font-weight:700;font-size:15px;margin-bottom:8px">${name} <span style="color:var(--tx2);font-size:12px">${info.phone||''}</span></div>${stallRows}</div>`;
     }).join('');
   }
   resWrap.style.display='block';
