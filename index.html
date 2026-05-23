@@ -83,7 +83,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
   .csv-hide-mobile{display:none!important}
   /* 手機版地圖預設隱藏 */
   #mapWrap{display:none}
-  #mapWrap.show{display:block}
+  #mapWrap.show{display:block;height:70vh;overflow:auto;-webkit-overflow-scrolling:touch}
   /* 手機版主畫面 */
   #mobileHome{display:flex;flex-direction:column;gap:12px;padding:16px}
   #mobileHomeStats{display:flex;gap:16px;font-size:1em}
@@ -374,6 +374,9 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
       </div>
     </div>
   </div>
+</div>
+<div id="searchResults" style="display:none;padding:12px;background:var(--sur1)">
+  <div id="searchResultsList"></div>
 </div>
 <div class="bwrap" id="mapWrap">
   <div class="mscroll"><div id="mc" style="display:inline-flex;flex-direction:column;gap:0"></div></div>
@@ -915,6 +918,29 @@ function quickFind(){
 buildMap();
 populateRowSelect();
 // loadFromSupabase(); // Supabase disabled
+
+function doSearch(){
+  const q = document.getElementById('si').value.trim();
+  const resList = document.getElementById('searchResultsList');
+  const resWrap = document.getElementById('searchResults');
+  if(!q){ resWrap.style.display='none'; return; }
+
+  const owners={};
+  Object.keys(data).forEach(key=>{DAYS.forEach(d=>{const i=data[key][d];if(i&&i.name){if(!owners[i.name])owners[i.name]={...i,stalls:[]};owners[i.name].stalls.push({key,day:d});}});});
+  const matches=Object.entries(owners).filter(([n])=>n.includes(q));
+  const DL2={'thu':'週四','fri':'週五','sat':'週六','sun':'週日'};
+
+  if(!matches.length){
+    resList.innerHTML='<div style="color:var(--tx2);padding:8px">找不到格主</div>';
+  } else {
+    resList.innerHTML = matches.map(([name,info])=>{
+      const pills = info.stalls.map(s=>`<span onclick="document.getElementById('searchResults').style.display='none';setDay('${s.day}');selectStall('${s.key}');" style="cursor:pointer;background:var(--sur2);border:1px solid var(--acc);border-radius:6px;padding:4px 10px;font-size:13px;display:inline-block;margin:4px;color:var(--acc)">${DL2[s.day]} ${fk(s.key)}</span>`).join('');
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--bdr)"><div style="font-weight:700;font-size:15px;margin-bottom:6px">${name} <span style="color:var(--tx2);font-size:12px">${info.phone||''}</span></div><div style="flex-wrap:wrap;display:flex">${pills}</div></div>`;
+    }).join('');
+  }
+  resWrap.style.display='block';
+  document.getElementById('sr').classList.remove('open');
+}
 
 function setDay(day){
   today=day;
