@@ -117,6 +117,24 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 
 }
 .sri{padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--bdr);transition:background .1s}
+/* Vendor overlay colors */
+.cell-num.vdr,.cell-blank.vdr{background:rgba(56,139,253,.18)!important;border-color:rgba(56,139,253,.5)!important;color:#58a6ff!important}
+.cell-num.both,.cell-blank.both{background:rgba(130,80,255,.18)!important;border-color:rgba(130,80,255,.5)!important;color:#c084fc!important}
+/* Display mode toggle */
+.vmode-btn{padding:5px 11px;border-radius:6px;border:1px solid var(--bdr);background:transparent;color:var(--tx2);font-family:'Noto Sans TC',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.vmode-btn:hover{border-color:#388bfd;color:#58a6ff}
+.vmode-btn.active{background:#388bfd;border-color:#388bfd;color:#fff;font-weight:700}
+/* Vendor info in panel */
+.vdr-section{background:rgba(56,139,253,.08);border:1px solid rgba(56,139,253,.25);border-radius:8px;padding:12px;margin-top:10px}
+.vdr-section-title{font-size:11px;color:#58a6ff;font-weight:700;margin-bottom:8px;letter-spacing:.05em}
+.vdr-row{display:flex;gap:6px;margin-bottom:5px;font-size:12px}
+.vdr-lbl{color:var(--tx2);min-width:52px;flex-shrink:0}
+.vdr-val{color:var(--tx)}
+.vdr-days{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.vdr-day{padding:2px 8px;border-radius:4px;background:rgba(56,139,253,.2);color:#58a6ff;font-size:11px}
+.social-links{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.social-link{padding:2px 7px;border-radius:4px;background:var(--sur2);border:1px solid var(--bdr);color:var(--tx2);font-size:11px;text-decoration:none}
+
 .sri:last-child{border-bottom:none}
 .sri:hover{background:var(--sur)}
 .sri-n{font-size:13px;font-weight:500}
@@ -278,6 +296,11 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
       <span><span class="sdot" style="background:var(--grn)"></span><span id="fc">0</span> 已填</span>
       <span><span class="sdot" style="background:var(--sur2);border:1px solid var(--bdr)"></span><span id="ec">0</span> 空格</span>
     </div>
+    <div style="display:flex;gap:3px;flex-shrink:0" id="vmodeTabs">
+      <button class="vmode-btn active" data-vmode="owner" title="只顯示格主資料">格主</button>
+      <button class="vmode-btn" data-vmode="vendor" title="只顯示攤商資料">攤商</button>
+      <button class="vmode-btn" data-vmode="both" title="同時顯示格主與攤商">全部</button>
+    </div>
   </div>
   <!-- Row 2: Search + Quick find + Tools -->
   <div class="hd-row2">
@@ -400,6 +423,10 @@ const G=1, A=8; // gap, aisle
 let data=JSON.parse(localStorage.getItem('nm7')||'{}');
 const DAYS=['thu','fri','sat','sun'],DL={thu:'週四',fri:'週五',sat:'週六',sun:'週日'};
 let today='thu',selKey=null;
+let vendorData={}; // key: 'row|num', value: array of vendor records
+let vmode='owner'; // 'owner' | 'vendor' | 'both'
+// Day mapping from vendor format to app format
+const VDAY_MAP={'週四':'thu','週五':'fri','週六':'sat','週日':'sun'};
 
 function rng(n){return Array.from({length:n},(_,i)=>i+1)}
 function sk(row,num){return row+'|'+num}
@@ -466,19 +493,38 @@ function makeZone(rowId,w,h){
   return e;
 }
 
+function hasVendorToday(key){
+  const vlist=vendorData[key];
+  if(!vlist||!vlist.length)return false;
+  return vlist.some(function(v){
+    var days=v.day_of_week||'';
+    var mapped=days.split('、').map(function(d){return VDAY_MAP[d.trim()];});
+    return mapped.indexOf(today)!==-1;
+  });
+}
 function refreshOne(e,key){
   const info=gi(key);
-  const has=!!(info&&info.name);
+  const hasOwner=!!(info&&info.name);
+  const hasVendor=hasVendorToday(key);
   const sel=key===selKey;
-  e.classList.toggle('has',has);
+  e.classList.toggle('has',hasOwner);
   e.classList.toggle('sel',sel);
   e.querySelectorAll('[class*="cell-num"],[class*="cell-blank"],[class*="hcell-num"],[class*="hcell-blank"]').forEach(function(c){
+    // Remove vendor classes
+    c.classList.remove('vdr','both');
     if(sel){
       c.style.background='var(--acc)';c.style.borderColor='var(--acc)';c.style.color='#000';
-    } else if(has){
-      c.style.background='var(--grn2)';c.style.borderColor='var(--grn3)';c.style.color='var(--grn)';
-    } else {
-      c.style.background='var(--sur2)';c.style.borderColor='';c.style.color='var(--tx2)';
+    } else if(vmode==='owner'){
+      if(hasOwner){c.style.background='var(--grn2)';c.style.borderColor='var(--grn3)';c.style.color='var(--grn)';}
+      else{c.style.background='var(--sur2)';c.style.borderColor='';c.style.color='var(--tx2)';}
+    } else if(vmode==='vendor'){
+      if(hasVendor){c.style.background='rgba(56,139,253,.18)';c.style.borderColor='rgba(56,139,253,.5)';c.style.color='#58a6ff';}
+      else{c.style.background='var(--sur2)';c.style.borderColor='';c.style.color='var(--tx2)';}
+    } else { // both
+      if(hasOwner&&hasVendor){c.style.background='rgba(130,80,255,.18)';c.style.borderColor='rgba(130,80,255,.5)';c.style.color='#c084fc';}
+      else if(hasOwner){c.style.background='var(--grn2)';c.style.borderColor='var(--grn3)';c.style.color='var(--grn)';}
+      else if(hasVendor){c.style.background='rgba(56,139,253,.18)';c.style.borderColor='rgba(56,139,253,.5)';c.style.color='#58a6ff';}
+      else{c.style.background='var(--sur2)';c.style.borderColor='';c.style.color='var(--tx2)';}
     }
   });
 }
@@ -588,16 +634,28 @@ function vpair(a,b,n){
 function applyPairStyle(keyA,elsA,keyB,elsB){
   const infoA=gi(keyA),infoB=gi(keyB);
   const selA=selKey===keyA,selB=selKey===keyB;
-  elsA.forEach(e=>{
-    e.style.background=selA?'var(--acc)':(infoA&&infoA.name)?'var(--grn2)':'var(--sur2)';
-    e.style.borderColor=selA?'var(--acc)':(infoA&&infoA.name)?'var(--grn3)':'var(--bdr)';
-    e.style.color=selA?'#000':(infoA&&infoA.name)?'var(--grn)':'var(--tx2)';
-  });
-  elsB.forEach(e=>{
-    e.style.background=selB?'var(--acc)':(infoB&&infoB.name)?'var(--grn2)':'var(--sur2)';
-    e.style.borderColor=selB?'var(--acc)':(infoB&&infoB.name)?'var(--grn3)':'var(--bdr)';
-    e.style.color=selB?'#000':(infoB&&infoB.name)?'var(--grn)':'var(--tx2)';
-  });
+  const vA=hasVendorToday(keyA),vB=hasVendorToday(keyB);
+  function styleEls(els,sel,hasO,hasV){
+    els.forEach(e=>{
+      if(sel){e.style.background='var(--acc)';e.style.borderColor='var(--acc)';e.style.color='#000';}
+      else if(vmode==='owner'){
+        e.style.background=(hasO)?'var(--grn2)':'var(--sur2)';
+        e.style.borderColor=(hasO)?'var(--grn3)':'var(--bdr)';
+        e.style.color=(hasO)?'var(--grn)':'var(--tx2)';
+      } else if(vmode==='vendor'){
+        e.style.background=hasV?'rgba(56,139,253,.18)':'var(--sur2)';
+        e.style.borderColor=hasV?'rgba(56,139,253,.5)':'var(--bdr)';
+        e.style.color=hasV?'#58a6ff':'var(--tx2)';
+      } else {
+        if(hasO&&hasV){e.style.background='rgba(130,80,255,.18)';e.style.borderColor='rgba(130,80,255,.5)';e.style.color='#c084fc';}
+        else if(hasO){e.style.background='var(--grn2)';e.style.borderColor='var(--grn3)';e.style.color='var(--grn)';}
+        else if(hasV){e.style.background='rgba(56,139,253,.18)';e.style.borderColor='rgba(56,139,253,.5)';e.style.color='#58a6ff';}
+        else{e.style.background='var(--sur2)';e.style.borderColor='var(--bdr)';e.style.color='var(--tx2)';}
+      }
+    });
+  }
+  styleEls(elsA,selA,!!(infoA&&infoA.name),vA);
+  styleEls(elsB,selB,!!(infoB&&infoB.name),vB);
 }
 
 /* Horizontal row of stalls */
@@ -772,6 +830,35 @@ function renderPanel(key,rowId,num){
     const others=Object.keys(data).filter(k=>k!==key&&data[k][today]&&data[k][today].name===info.name);
     if(others.length)oss=`<div class="oss"><div class="ost">${info.name} 本日其他格位</div><div class="osl">${others.map(k=>`<div class="osb" onclick="jump('${k}')">${fk(k)}</div>`).join('')}</div></div>`;
   }
+  const vlist=vendorData[key]||[];
+  const vToday=vlist.filter(function(v){
+    var days=(v.day_of_week||'').split('、').map(function(d){return VDAY_MAP[d.trim()];});
+    return days.indexOf(today)!==-1;
+  });
+  var vhtml='';
+  if(vlist.length){
+    vhtml='<div class="vdr-section"><div class="vdr-section-title">🏪 攤商資料</div>';
+    vlist.forEach(function(v){
+      var days=(v.day_of_week||'').split('、').map(function(d){return'<span class="vdr-day">'+d+'</span>';}).join('');
+      var socials='';
+      if(v.facebook)socials+='<a class="social-link" href="'+v.facebook+'" target="_blank">FB</a>';
+      if(v.instagram)socials+='<a class="social-link" href="https://instagram.com/'+v.instagram.replace('@','')+'" target="_blank">IG</a>';
+      if(v.tiktok)socials+='<a class="social-link" href="https://tiktok.com/'+v.tiktok.replace('@','')+'" target="_blank">抖音</a>';
+      if(v.threads)socials+='<a class="social-link" href="https://threads.net/'+v.threads.replace('@','')+'" target="_blank">Threads</a>';
+      vhtml+='<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(56,139,253,.15)">';
+      vhtml+='<div class="vdr-days">'+days+'</div>';
+      vhtml+='<div class="vdr-row"><span class="vdr-lbl">攤名</span><span class="vdr-val" style="font-weight:700">'+( v.stall_name||'')+'</span></div>';
+      if(v.products)vhtml+='<div class="vdr-row"><span class="vdr-lbl">商品</span><span class="vdr-val">'+v.products+'</span></div>';
+      if(v.description)vhtml+='<div class="vdr-row"><span class="vdr-lbl">簡介</span><span class="vdr-val">'+v.description+'</span></div>';
+      if(v.contact_name)vhtml+='<div class="vdr-row"><span class="vdr-lbl">聯絡人</span><span class="vdr-val">'+v.contact_name+'</span></div>';
+      if(v.contact_phone)vhtml+='<div class="vdr-row"><span class="vdr-lbl">電話</span><span class="vdr-val">'+v.contact_phone+'</span></div>';
+      if(v.line_id)vhtml+='<div class="vdr-row"><span class="vdr-lbl">Line</span><span class="vdr-val">'+v.line_id+'</span></div>';
+      if(socials)vhtml+='<div class="social-links">'+socials+'</div>';
+      if(v.photo_url)vhtml+='<div style="margin-top:8px"><img src="'+v.photo_url+'" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover"></div>';
+      vhtml+='</div>';
+    });
+    vhtml+='</div>';
+  }
   document.getElementById('pb').innerHTML=`
     <div class="drws">${ds}</div><div class="divider"></div>
     <div class="subt">${DL[today]} 格主資料</div>
@@ -780,7 +867,8 @@ function renderPanel(key,rowId,num){
     <div class="fg"><label class="fl">地址</label><input class="fi" id="fa" placeholder="聯絡地址" value="${info.address||''}"></div>
     <button class="btn btnp" onclick="save('${key}')">💾 儲存</button>
     ${info.name?`<button class="btn btnd" onclick="del('${key}')">🗑 清除</button>`:''}
-    ${oss}`;
+    ${oss}
+    `+vhtml+``;
 }
 
 function fk(key){const[r,n]=pk(key);return n==='z'?r:`${r} ${n}號`}
@@ -994,6 +1082,28 @@ function openMobileSheet(key,rowId,num){
     const others=Object.keys(data).filter(k=>k!==key&&data[k][today]&&data[k][today].name===info.name);
     if(others.length)oss=`<div class="oss"><div class="ost">${info.name} 本日其他格位</div><div class="osl">${others.map(k=>`<div class="osb" onclick="jump('${k}')">${fk(k)}</div>`).join('')}</div></div>`;
   }
+  const mvlist=vendorData[key]||[];
+  var mvhtml='';
+  if(mvlist.length){
+    mvhtml='<div class="vdr-section"><div class="vdr-section-title">🏪 攤商資料</div>';
+    mvlist.forEach(function(v){
+      var days=(v.day_of_week||'').split('、').map(function(d){return'<span class="vdr-day">'+d+'</span>';}).join('');
+      var socials='';
+      if(v.facebook)socials+='<a class="social-link" href="'+v.facebook+'" target="_blank">FB</a>';
+      if(v.instagram)socials+='<a class="social-link" href="https://instagram.com/'+v.instagram.replace('@','')+'" target="_blank">IG</a>';
+      if(v.tiktok)socials+='<a class="social-link" href="https://tiktok.com/'+v.tiktok.replace('@','')+'" target="_blank">抖音</a>';
+      if(v.threads)socials+='<a class="social-link" href="https://threads.net/'+v.threads.replace('@','')+'" target="_blank">Threads</a>';
+      mvhtml+='<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(56,139,253,.15)">';
+      mvhtml+='<div class="vdr-days">'+days+'</div>';
+      mvhtml+='<div class="vdr-row"><span class="vdr-lbl">攤名</span><span class="vdr-val" style="font-weight:700">'+(v.stall_name||'')+'</span></div>';
+      if(v.products)mvhtml+='<div class="vdr-row"><span class="vdr-lbl">商品</span><span class="vdr-val">'+v.products+'</span></div>';
+      if(v.contact_name)mvhtml+='<div class="vdr-row"><span class="vdr-lbl">聯絡人</span><span class="vdr-val">'+v.contact_name+'</span></div>';
+      if(v.contact_phone)mvhtml+='<div class="vdr-row"><span class="vdr-lbl">電話</span><span class="vdr-val">'+v.contact_phone+'</span></div>';
+      if(v.photo_url)mvhtml+='<div style="margin-top:8px"><img src="'+v.photo_url+'" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover"></div>';
+      mvhtml+='</div>';
+    });
+    mvhtml+='</div>';
+  }
   document.getElementById('mobileSheetBody').innerHTML=`
     <div class="drws">${ds}</div><div class="divider"></div>
     <div class="subt">${DL[today]} 格主資料</div>
@@ -1002,7 +1112,7 @@ function openMobileSheet(key,rowId,num){
     <div class="fg"><label class="fl">地址</label><input class="fi" id="mfa" placeholder="聯絡地址" value="${info.address||''}"></div>
     <button class="btn btnp" onclick="save('${key}')">💾 儲存</button>
     ${info.name?`<button class="btn btnd" onclick="del('${key}')">🗑 清除</button>`:''}
-    ${oss}`;
+    ${oss}`+mvhtml;
   sheet.classList.add('open');
 }
 
@@ -1335,6 +1445,42 @@ document.querySelectorAll('[data-key="35排|4"]').forEach(function(e){
   }
 });
 
+
+/* ── Load Vendors from Supabase ── */
+async function loadVendors(){
+  try {
+    var all=[];
+    var page=0,size=1000;
+    while(true){
+      var rows=await supaFetch('/vendors?select=*&is_active=eq.true&limit='+size+'&offset='+(page*size)).then(function(r){return r.json();});
+      if(!rows||!rows.length)break;
+      all=all.concat(rows);
+      page++;
+      if(rows.length<size)break;
+    }
+    vendorData={};
+    all.forEach(function(v){
+      var key=v.row_number+'|'+v.stall_number;
+      if(!vendorData[key])vendorData[key]=[];
+      vendorData[key].push(v);
+    });
+    refreshAll();
+    updateStats();
+    showToast('✅ 攤商資料已載入 '+all.length+' 筆');
+  } catch(e){console.error('Vendor load error:',e);}
+}
+loadVendors();
+
+/* ── Display mode toggle ── */
+document.getElementById('vmodeTabs').addEventListener('click',function(e){
+  var btn=e.target.closest('.vmode-btn');
+  if(!btn)return;
+  document.querySelectorAll('.vmode-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  vmode=btn.dataset.vmode;
+  refreshAll();
+  if(selKey){var p=pk(selKey);if(isMobile())openMobileSheet(selKey,p[0],p[1]);else renderPanel(selKey,p[0],p[1]);}
+});
 
 // 登入功能
 const PWD = '0978';
