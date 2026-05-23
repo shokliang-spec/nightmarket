@@ -335,8 +335,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
       <button class="dtab" data-day="sun">週日</button>
     </div>
     <div class="stats">
-      <span><span class="sdot" style="background:var(--grn)"></span><span id="fc">0</span> 已填</span>
-      <span><span class="sdot" style="background:var(--sur2);border:1px solid var(--bdr)"></span><span id="ec">0</span> 空格</span>
+      <span><span class="sdot" style="background:var(--grn)"></span><span id="fc">0</span> <span id="fcLabel">已填</span></span>
+      <span><span class="sdot" style="background:var(--sur2);border:1px solid var(--bdr)"></span><span id="ec">0</span> <span id="ecLabel">空格</span></span>
     </div>
     <div style="display:flex;gap:3px;flex-shrink:0" id="vmodeTabs">
       <button class="vmode-btn active" data-vmode="owner" title="只顯示格主資料">格主</button>
@@ -349,7 +349,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
       <div class="swrap" style="flex:1;min-width:0">
         <span class="sico">🔍</span>
-        <input class="sinput" id="si" type="text" placeholder="搜尋格主姓名..." onkeydown="if(event.key==='Enter')doSearch()">
+        <input class="sinput" id="si" type="text" placeholder="搜尋姓名..." onkeydown="if(event.key==='Enter')doSearch()">
         <div class="sres" id="sr"></div>
       </div>
       <button class="qfbtn" onclick="doSearch()" style="flex-shrink:0">搜尋</button>
@@ -838,17 +838,33 @@ function buildMap(){
 
 function updateStats(){
   let t=0,f=0;
-  ALL_ROWS.forEach(function(r){
-    var nums=ROW_STALLS[r];
-    if(!nums)return;
-    nums.forEach(function(n){
-      var key=sk(r,n);
-      t++;
-      if(data[key]&&data[key][today]&&data[key][today].name)f++;
+  if(vmode==='vendor'){
+    // 統計攤商資料
+    ALL_ROWS.forEach(function(r){
+      var nums=ROW_STALLS[r];
+      if(!nums)return;
+      nums.forEach(function(n){
+        var key=sk(r,n);
+        t++;
+        if(hasVendorToday(key))f++;
+      });
     });
-  });
-  document.getElementById('fc').textContent=f;
-  document.getElementById('ec').textContent=t-f;
+    document.getElementById('fc').textContent=f;
+    document.getElementById('ec').textContent=t-f;
+  } else {
+    // 統計格主資料
+    ALL_ROWS.forEach(function(r){
+      var nums=ROW_STALLS[r];
+      if(!nums)return;
+      nums.forEach(function(n){
+        var key=sk(r,n);
+        t++;
+        if(data[key]&&data[key][today]&&data[key][today].name)f++;
+      });
+    });
+    document.getElementById('fc').textContent=f;
+    document.getElementById('ec').textContent=t-f;
+  }
 }
 
 function selectStall(key){
@@ -1564,6 +1580,10 @@ function enterMode(mode){
   // 攤商模式或 vendor 帳號：隱藏切換按鈕
   var role = sessionStorage.getItem('loggedIn');
   document.getElementById('vmodeTabs').style.display = (mode==='vendor' || role==='vendor') ? 'none' : 'flex';
+  // 更新統計標籤
+  var isVendor = (mode==='vendor');
+  document.getElementById('fcLabel').textContent = isVendor ? '有攤商' : '已填';
+  document.getElementById('ecLabel').textContent = isVendor ? '無攤商' : '空格';
   document.getElementById('modeScreen').style.display='none';
   refreshAll();
   if(selKey){var p=pk(selKey);renderPanel(selKey,p[0],p[1]);}
