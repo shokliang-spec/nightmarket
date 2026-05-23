@@ -859,16 +859,18 @@ function renderPanel(key,rowId,num){
     });
     vhtml+='</div>';
   }
-  document.getElementById('pb').innerHTML=`
-    <div class="drws">${ds}</div><div class="divider"></div>
+  const ownerHtml = vmode==='vendor' ? '' : `
+    <div class="divider"></div>
     <div class="subt">${DL[today]} 格主資料</div>
     <div class="fg"><label class="fl">姓名</label><input class="fi" id="fn" placeholder="格主姓名" value="${info.name||''}"></div>
     <div class="fg"><label class="fl">電話</label><input class="fi" id="fp" placeholder="聯絡電話" value="${info.phone||''}"></div>
     <div class="fg"><label class="fl">地址</label><input class="fi" id="fa" placeholder="聯絡地址" value="${info.address||''}"></div>
     <button class="btn btnp" onclick="save('${key}')">💾 儲存</button>
     ${info.name?`<button class="btn btnd" onclick="del('${key}')">🗑 清除</button>`:''}
-    ${oss}
-    `+vhtml+``;
+    ${oss}`;
+  document.getElementById('pb').innerHTML=`
+    <div class="drws">${ds}</div>
+    `+ownerHtml+vhtml;
 }
 
 function fk(key){const[r,n]=pk(key);return n==='z'?r:`${r} ${n}號`}
@@ -1104,15 +1106,17 @@ function openMobileSheet(key,rowId,num){
     });
     mvhtml+='</div>';
   }
-  document.getElementById('mobileSheetBody').innerHTML=`
-    <div class="drws">${ds}</div><div class="divider"></div>
+  const mOwnerHtml = vmode==='vendor' ? '' : `
+    <div class="divider"></div>
     <div class="subt">${DL[today]} 格主資料</div>
     <div class="fg"><label class="fl">姓名</label><input class="fi" id="mfn" placeholder="格主姓名" value="${info.name||''}"></div>
     <div class="fg"><label class="fl">電話</label><input class="fi" id="mfp" placeholder="聯絡電話" value="${info.phone||''}"></div>
     <div class="fg"><label class="fl">地址</label><input class="fi" id="mfa" placeholder="聯絡地址" value="${info.address||''}"></div>
     <button class="btn btnp" onclick="save('${key}')">💾 儲存</button>
     ${info.name?`<button class="btn btnd" onclick="del('${key}')">🗑 清除</button>`:''}
-    ${oss}`+mvhtml;
+    ${oss}`;
+  document.getElementById('mobileSheetBody').innerHTML=`
+    <div class="drws">${ds}</div>`+mOwnerHtml+mvhtml;
   sheet.classList.add('open');
 }
 
