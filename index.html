@@ -264,6 +264,19 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 #logoutBtn{background:var(--sur2);border:1px solid var(--bdr);color:var(--tx2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.85em;}
 #logoutBtn:hover{border-color:var(--acc);color:var(--acc);}
 
+/* Mode select screen */
+#modeScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#0d0d0d;display:none;align-items:center;justify-content:center;z-index:9998;}
+#modeBox{background:var(--sur);border:1px solid var(--bdr);border-radius:16px;padding:40px 32px;width:360px;text-align:center;}
+#modeBox h2{color:var(--acc);margin-bottom:8px;font-size:1.3em;font-family:'Noto Sans TC',sans-serif;}
+#modeBox p{color:var(--tx2);margin-bottom:28px;font-size:0.88em;}
+.mode-btn{width:100%;padding:14px;margin-bottom:12px;border-radius:10px;border:1px solid var(--bdr);background:var(--sur2);color:var(--tx);font-family:'Noto Sans TC',sans-serif;font-size:1em;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px;}
+.mode-btn:hover{border-color:var(--acc);background:rgba(245,166,35,.08);color:var(--acc);}
+.mode-btn .mode-icon{font-size:1.4em;flex-shrink:0;}
+.mode-btn .mode-text{text-align:left;}
+.mode-btn .mode-title{font-weight:700;font-size:1em;}
+.mode-btn .mode-desc{font-size:0.78em;color:var(--tx2);margin-top:2px;}
+.mode-btn:hover .mode-desc{color:var(--acc);opacity:0.8;}
+
 </style>
 </head>
 <body>
@@ -276,6 +289,35 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     <input type="password" id="loginPwd" placeholder="請輸入密碼" onkeydown="if(event.key==='Enter')doLogin()">
     <button id="loginBtn" onclick="doLogin()">登入</button>
     <div id="loginErr">密碼錯誤，請再試一次</div>
+  </div>
+</div>
+
+<div id="modeScreen">
+  <div id="modeBox">
+    <img src="花園夜市-輔助LOGO-純圖-標準色.png" style="width:64px;margin-bottom:12px;">
+    <h2>選擇檢視模式</h2>
+    <p>請選擇您要查看的資料類型</p>
+    <button class="mode-btn" onclick="enterMode('owner')">
+      <span class="mode-icon">🟢</span>
+      <div class="mode-text">
+        <div class="mode-title">格主模式</div>
+        <div class="mode-desc">查看並編輯格主資料</div>
+      </div>
+    </button>
+    <button class="mode-btn" onclick="enterMode('vendor')">
+      <span class="mode-icon">🔵</span>
+      <div class="mode-text">
+        <div class="mode-title">攤商模式</div>
+        <div class="mode-desc">查看攤商填寫的資料</div>
+      </div>
+    </button>
+    <button class="mode-btn" onclick="enterMode('both')">
+      <span class="mode-icon">🟣</span>
+      <div class="mode-text">
+        <div class="mode-title">全部模式</div>
+        <div class="mode-desc">同時顯示格主與攤商資料</div>
+      </div>
+    </button>
   </div>
 </div>
 
@@ -1493,18 +1535,32 @@ function doLogin(){
   if(pwd === PWD){
     sessionStorage.setItem('loggedIn','1');
     document.getElementById('loginScreen').style.display='none';
+    document.getElementById('modeScreen').style.display='flex';
   } else {
     document.getElementById('loginErr').style.display='block';
     document.getElementById('loginPwd').value='';
   }
 }
+function enterMode(mode){
+  vmode = mode;
+  // Update header buttons
+  document.querySelectorAll('.vmode-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.vmode===mode);
+  });
+  document.getElementById('modeScreen').style.display='none';
+  refreshAll();
+  if(selKey){var p=pk(selKey);renderPanel(selKey,p[0],p[1]);}
+}
 function checkLogin(){
   if(sessionStorage.getItem('loggedIn')!=='1'){
     document.getElementById('loginScreen').style.display='flex';
+  } else {
+    document.getElementById('modeScreen').style.display='flex';
   }
 }
 function doLogout(){
   sessionStorage.removeItem('loggedIn');
+  document.getElementById('modeScreen').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('loginPwd').value='';
 }
