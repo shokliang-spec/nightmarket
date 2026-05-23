@@ -80,6 +80,12 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 
   /* Show mobile bottom sheet */
   .mobile-sheet{display:flex}
+  /* 手機版地圖預設隱藏 */
+  #mapWrap{display:none}
+  #mapWrap.show{display:block}
+  /* 手機版主畫面 */
+  #mobileHome{display:flex;flex-direction:column;gap:12px;padding:16px}
+  #mobileHomeStats{display:flex;gap:16px;font-size:1em}
 
   /* Main body takes full width, map scrollable */
   .bwrap{flex-direction:column;overflow:hidden}
@@ -104,6 +110,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
 @media (min-width: 769px) {
   .hd-row1,.hd-row2{display:contents}
   .mobile-sheet{display:none!important}
+  .mobile-map-btn{display:none!important}
 }
 .sri{padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--bdr);transition:background .1s}
 .sri:last-child{border-bottom:none}
@@ -287,6 +294,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     </div>
     
     <button class="qfbtn" style="background:#1a7f3c;color:#fff" onclick="openCSV()">📥 <span class="bulk-btn-text">CSV 匯入</span></button>
+    <button class="qfbtn mobile-map-btn" style="background:var(--sur2);border:1px solid var(--bdr);color:var(--tx)" onclick="toggleMap()">🗺 地圖</button>
   </div>
 </header>
 
@@ -365,7 +373,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     </div>
   </div>
 </div>
-<div class="bwrap">
+<div class="bwrap" id="mapWrap">
   <div class="mscroll"><div id="mc" style="display:inline-flex;flex-direction:column;gap:0"></div></div>
   <div class="spanel">
     <div class="ph"><div class="pt">格位資訊</div><div id="phc"><div class="sid" style="color:var(--tx2);font-size:14px">請點選格位</div></div></div>
@@ -906,6 +914,23 @@ populateRowSelect();
 // loadFromSupabase(); // Supabase disabled
 
 function isMobile(){return window.innerWidth<=768}
+
+function toggleMap(){
+  var mapWrap = document.getElementById('mapWrap');
+  var btn = document.querySelector('.mobile-map-btn');
+  if(mapWrap.classList.contains('show')){
+    mapWrap.classList.remove('show');
+    btn.textContent='🗺 地圖';
+    btn.style.background='var(--sur2)';
+    btn.style.color='var(--tx)';
+  } else {
+    mapWrap.classList.add('show');
+    btn.textContent='✕ 關閉地圖';
+    btn.style.background='var(--acc)';
+    btn.style.color='#000';
+    refreshAll();
+  }
+}
 
 function openMobileSheet(key,rowId,num){
   const sheet=document.getElementById('mobileSheet');
