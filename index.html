@@ -281,7 +281,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
   <div class="hd-row2">
     <div class="swrap">
       <span class="sico">🔍</span>
-      <input class="sinput" id="si" type="text" placeholder="搜尋格主姓名...">
+      <input class="sinput" id="si" type="text" placeholder="搜尋格主姓名..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="qfbtn" onclick="doSearch()" style="flex-shrink:0;margin-left:6px">搜尋</button>
       <div class="sres" id="sr"></div>
     </div>
     <div class="qfwrap">
