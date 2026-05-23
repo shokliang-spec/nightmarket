@@ -297,7 +297,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
     <img src="花園夜市-輔助LOGO-純圖-標準色.png" style="width:64px;margin-bottom:12px;">
     <h2>選擇檢視模式</h2>
     <p>請選擇您要查看的資料類型</p>
-    <button class="mode-btn" onclick="enterMode('owner')">
+    <button class="mode-btn" id="modeOwnerBtn" onclick="enterMode('owner')">
       <span class="mode-icon">🟢</span>
       <div class="mode-text">
         <div class="mode-title">格主模式</div>
@@ -311,7 +311,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Noto Sans TC',sans-serif;
         <div class="mode-desc">查看攤商填寫的資料</div>
       </div>
     </button>
-    <button class="mode-btn" onclick="enterMode('both')">
+    <button class="mode-btn" id="modeBothBtn" onclick="enterMode('both')">
       <span class="mode-icon">🟣</span>
       <div class="mode-text">
         <div class="mode-title">全部模式</div>
@@ -1529,35 +1529,57 @@ document.getElementById('vmodeTabs').addEventListener('click',function(e){
 });
 
 // 登入功能
-const PWD = '0978';
+const PWD_ADMIN = '0978';  // 全功能密碼
+const PWD_VENDOR = '1111'; // 僅攤商模式密碼
+
 function doLogin(){
   var pwd = document.getElementById('loginPwd').value;
-  if(pwd === PWD){
-    sessionStorage.setItem('loggedIn','1');
+  if(pwd === PWD_ADMIN){
+    sessionStorage.setItem('loggedIn','admin');
     document.getElementById('loginScreen').style.display='none';
-    document.getElementById('modeScreen').style.display='flex';
+    showModeScreen('admin');
+  } else if(pwd === PWD_VENDOR){
+    sessionStorage.setItem('loggedIn','vendor');
+    document.getElementById('loginScreen').style.display='none';
+    // 直接進入攤商模式，不顯示選擇畫面
+    enterMode('vendor');
   } else {
     document.getElementById('loginErr').style.display='block';
     document.getElementById('loginPwd').value='';
   }
 }
+
+function showModeScreen(role){
+  // admin 顯示全部按鈕，vendor 只顯示攤商
+  document.getElementById('modeOwnerBtn').style.display = (role==='admin') ? 'flex' : 'none';
+  document.getElementById('modeBothBtn').style.display = (role==='admin') ? 'flex' : 'none';
+  document.getElementById('modeScreen').style.display='flex';
+}
+
 function enterMode(mode){
   vmode = mode;
-  // Update header buttons
   document.querySelectorAll('.vmode-btn').forEach(function(b){
     b.classList.toggle('active', b.dataset.vmode===mode);
   });
+  // 攤商模式或 vendor 帳號：隱藏切換按鈕
+  var role = sessionStorage.getItem('loggedIn');
+  document.getElementById('vmodeTabs').style.display = (mode==='vendor' || role==='vendor') ? 'none' : 'flex';
   document.getElementById('modeScreen').style.display='none';
   refreshAll();
   if(selKey){var p=pk(selKey);renderPanel(selKey,p[0],p[1]);}
 }
+
 function checkLogin(){
-  if(sessionStorage.getItem('loggedIn')!=='1'){
+  var role = sessionStorage.getItem('loggedIn');
+  if(!role){
     document.getElementById('loginScreen').style.display='flex';
+  } else if(role==='vendor'){
+    enterMode('vendor');
   } else {
-    document.getElementById('modeScreen').style.display='flex';
+    showModeScreen('admin');
   }
 }
+
 function doLogout(){
   sessionStorage.removeItem('loggedIn');
   document.getElementById('modeScreen').style.display='none';
