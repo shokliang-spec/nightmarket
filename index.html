@@ -893,17 +893,20 @@ function renderPanel(key,rowId,num){
   const dn=num==='z'?'（區塊）':num+'號';
   document.getElementById('phc').innerHTML=`<div class="sid">${rowId} ${dn}</div><div class="dbadge">${DL[today]}</div>`;
   const info=gi(key)||{};
-  const RDAY={'thu':'週四','fri':'週五','sat':'週六','sun':'週日'};
   const vlist_ds=vendorData[key]||[];
   const ds=DAYS.map(d=>{
-    const di=data[key]&&data[key][d];
-    const ownerName=di&&di.name?di.name:'（空）';
-    const vMatch=vlist_ds.find(function(v){
+    const vMatches=vlist_ds.filter(function(v){
       return (v.day_of_week||'').split('、').map(function(x){return VDAY_MAP[x.trim()];}).indexOf(d)!==-1;
     });
-    const vendorName=vMatch?vMatch.stall_name:'';
-    const displayName=vendorName?`${vendorName}　<span style="font-size:11px;opacity:0.6">${ownerName}</span>`:ownerName;
-    return`<div class="drw ${d===today?'cur':''}"><div class="dn">${DL[d]}</div><div class="do ${di&&di.name?'':'empty'}">${displayName}</div></div>`;
+    var displayName,isEmpty;
+    if(vMatches.length===0){
+      displayName='（無攤商）'; isEmpty=true;
+    } else if(vMatches.length===1){
+      displayName=vMatches[0].stall_name||'（未填攤名）'; isEmpty=false;
+    } else {
+      displayName=vMatches.map(function(v){return v.stall_name||'?';}).join(' / '); isEmpty=false;
+    }
+    return`<div class="drw ${d===today?'cur':''}"><div class="dn">${DL[d]}</div><div class="do ${isEmpty?'empty':''}">${displayName}</div></div>`;
   }).join('');
   let oss='';
   if(info.name){
@@ -1158,17 +1161,20 @@ function openMobileSheet(key,rowId,num){
   document.getElementById('mobileSheetTitle').textContent=`${rowId} ${num}號`;
   // Reuse renderPanel content in mobile sheet body
   const info=gi(key)||{};
-  const RDAY={'thu':'週四','fri':'週五','sat':'週六','sun':'週日'};
   const vlist_ds=vendorData[key]||[];
   const ds=DAYS.map(d=>{
-    const di=data[key]&&data[key][d];
-    const ownerName=di&&di.name?di.name:'（空）';
-    const vMatch=vlist_ds.find(function(v){
+    const vMatches=vlist_ds.filter(function(v){
       return (v.day_of_week||'').split('、').map(function(x){return VDAY_MAP[x.trim()];}).indexOf(d)!==-1;
     });
-    const vendorName=vMatch?vMatch.stall_name:'';
-    const displayName=vendorName?`${vendorName}　<span style="font-size:11px;opacity:0.6">${ownerName}</span>`:ownerName;
-    return`<div class="drw ${d===today?'cur':''}"><div class="dn">${DL[d]}</div><div class="do ${di&&di.name?'':'empty'}">${displayName}</div></div>`;
+    var displayName,isEmpty;
+    if(vMatches.length===0){
+      displayName='（無攤商）'; isEmpty=true;
+    } else if(vMatches.length===1){
+      displayName=vMatches[0].stall_name||'（未填攤名）'; isEmpty=false;
+    } else {
+      displayName=vMatches.map(function(v){return v.stall_name||'?';}).join(' / '); isEmpty=false;
+    }
+    return`<div class="drw ${d===today?'cur':''}"><div class="dn">${DL[d]}</div><div class="do ${isEmpty?'empty':''}">${displayName}</div></div>`;
   }).join('');
   let oss='';
   if(info.name){
