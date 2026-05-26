@@ -991,7 +991,7 @@ function renderPanel(key,rowId,num){
       if(socials)vhtml+='<div class="social-links">'+socials+'</div>';
       if(v.photo_url)vhtml+='<div style="margin-top:8px"><img src="'+v.photo_url+'" class="vdr-photo" onclick="openLightbox(\''+v.photo_url+'\')"></div>';
       vhtml+='<div class="vdr-actions">';
-      vhtml+='<button class="btn-vdr-edit" onclick="openVdrEdit('+JSON.stringify(v)+')">✏️ 編輯</button>';
+      vhtml+='<button class="btn-vdr-edit" onclick="openVdrEditById(\''+v.id+'\')">✏️ 編輯</button>';
       vhtml+='<button class="btn-vdr-erase" onclick="confirmDeleteVdr(\''+v.id+'\')">🗑 刪除</button>';
       vhtml+='</div>';
       vhtml+='</div>';
@@ -1625,6 +1625,15 @@ document.addEventListener('keydown',function(e){
 });
 
 /* ── Vendor Edit / Delete ── */
+function openVdrEditById(id){
+  // Find vendor in vendorData
+  var v=null;
+  Object.values(vendorData).forEach(function(list){
+    list.forEach(function(item){ if(item.id===id) v=item; });
+  });
+  if(!v){ alert('找不到資料'); return; }
+  openVdrEdit(v);
+}
 function openVdrEdit(v){
   document.getElementById('vdr-edit-id').value=v.id||'';
   document.getElementById('ve-name').value=v.stall_name||'';
