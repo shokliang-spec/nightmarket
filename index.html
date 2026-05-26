@@ -1522,13 +1522,14 @@ const SUPA_URL = "https://evzqyplqbdrzikkvjtvh.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2enF5cGxxYmRyemlra3ZqdHZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzODQ2MDAsImV4cCI6MjA5NDk2MDYwMH0.6GBy9iaanu3-ghBaJGdcFRQfOuMaDtP2RouwUIgMEek";
 
 function supaFetch(path, method, body) {
+  var m = method || 'GET';
   var opts = {
-    method: method || 'GET',
+    method: m,
     headers: {
       'Content-Type': 'application/json',
       'apikey': SUPA_KEY,
       'Authorization': 'Bearer ' + SUPA_KEY,
-      'Prefer': 'resolution=merge-duplicates,return=minimal'
+      'Prefer': m==='PATCH' ? 'return=minimal' : 'resolution=merge-duplicates,return=minimal'
     }
   };
   if (body) opts.body = JSON.stringify(body);
@@ -1669,11 +1670,7 @@ async function saveVdrEdit(){
   };
   showVdrEditStatus('儲存中…','');
   try{
-    const res=await supaFetch('/vendors?id=eq.'+id,{
-      method:'PATCH',
-      headers:{'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify(updates)
-    });
+    const res=await supaFetch('/vendors?id=eq.'+id,'PATCH',updates);
     if(!res.ok)throw new Error('HTTP '+res.status);
     showVdrEditStatus('✅ 儲存成功','green');
     await loadVendors();
@@ -1693,7 +1690,7 @@ async function deleteVdr(){
 }
 async function deleteVdrById(id){
   try{
-    const res=await supaFetch('/vendors?id=eq.'+id,{method:'DELETE'});
+    const res=await supaFetch('/vendors?id=eq.'+id,'DELETE');
     if(!res.ok)throw new Error('HTTP '+res.status);
     showToast('🗑 攤商資料已刪除');
     await loadVendors();
