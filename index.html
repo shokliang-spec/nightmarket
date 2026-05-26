@@ -954,9 +954,9 @@ function renderPanel(key,rowId,num){
     if(vMatches.length===0){
       displayName='（無攤商）'; isEmpty=true;
     } else if(vMatches.length===1){
-      displayName=vMatches[0].stall_name||'（未填攤名）'; isEmpty=false;
+      var v0=vMatches[0]; displayName=(v0.stall_name||'（未填攤名）')+(v0.stall_type?'<span style="font-size:10px;opacity:0.6;margin-left:4px">'+(v0.stall_type==='臨時攤'?'🪧':'🏪')+' '+v0.stall_type+'</span>':''); isEmpty=false;
     } else {
-      displayName=vMatches.map(function(v){return v.stall_name||'?';}).join(' / '); isEmpty=false;
+      displayName=vMatches.map(function(v){return (v.stall_name||'?')+(v.stall_type?'<span style="font-size:10px;opacity:0.6;margin-left:4px">'+(v.stall_type==='臨時攤'?'🪧':'🏪')+' '+v.stall_type+'</span>':'');}).join(' / '); isEmpty=false;
     }
     return`<div class="drw ${d===today?'cur':''}"><div class="dn">${DL[d]}</div><div class="do ${isEmpty?'empty':''}">${displayName}</div></div>`;
   }).join('');
@@ -1226,9 +1226,9 @@ function openMobileSheet(key,rowId,num){
     if(vMatches.length===0){
       displayName='（無攤商）'; isEmpty=true;
     } else if(vMatches.length===1){
-      displayName=vMatches[0].stall_name||'（未填攤名）'; isEmpty=false;
+      var v0=vMatches[0]; displayName=(v0.stall_name||'（未填攤名）')+(v0.stall_type?'<span style="font-size:10px;opacity:0.6;margin-left:4px">'+(v0.stall_type==='臨時攤'?'🪧':'🏪')+' '+v0.stall_type+'</span>':''); isEmpty=false;
     } else {
-      displayName=vMatches.map(function(v){return v.stall_name||'?';}).join(' / '); isEmpty=false;
+      displayName=vMatches.map(function(v){return (v.stall_name||'?')+(v.stall_type?'<span style="font-size:10px;opacity:0.6;margin-left:4px">'+(v.stall_type==='臨時攤'?'🪧':'🏪')+' '+v.stall_type+'</span>':'');}).join(' / '); isEmpty=false;
     }
     return`<div class="drw ${d===today?'cur':''}"><div class="dn">${DL[d]}</div><div class="do ${isEmpty?'empty':''}">${displayName}</div></div>`;
   }).join('');
