@@ -1082,7 +1082,7 @@ document.getElementById('dayTabs').addEventListener('click',e=>{
   document.querySelectorAll('.dtab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');today=btn.dataset.day;
   refreshAll();updateStats();
-  if(selKey){const[r,n]=pk(selKey);renderPanel(selKey,r,n);}
+  if(selKey){const[r,n]=pk(selKey);if(isMobile())openMobileSheet(selKey,r,n);else renderPanel(selKey,r,n);}
 });
 
 let tt;
